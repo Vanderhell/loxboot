@@ -2,16 +2,18 @@
 
 ## Current baseline
 
-- v0.3.0-boot-sequence is the current baseline.
-- Full boot sequence implemented: loxboot_run (8 steps), rollback, crash loop detection, test jump hook.
-- Local builds + CTest pass on MSVC and clang-cl (all 11 tests, 100% pass rate).
-- GCC/Clang on Linux and GitHub Actions pending CI verification (PROMPT 2).
+- v0.4.0-uart is the current baseline.
+- Full boot sequence with UART transport: loxboot_run (8 steps), rollback, crash loop, test jump hook, UART session integration.
+- All 13 CTests passing (100% pass rate): 11 v0.3.0 boot sequence tests + 2 v0.4.0 UART tests.
+- Builds clean on MSVC, clang-cl, GCC, Clang with -Wall -Wextra -Wpedantic -Werror.
+- Ready for GitHub push and CI verification.
 
 ## Completed baselines
 
 - v0.1.0-spec — API, full specification, porting guide, ecosystem integration docs
 - v0.2.0-core — CRC32 + init + boot-state R/W + slot control + deterministic tests
-- v0.3.0-boot-sequence — loxboot_run + rollback + crash loop + jump hook + 13 new tests
+- v0.3.0-boot-sequence — loxboot_run + rollback + crash loop + jump hook + 11 tests
+- v0.4.0-uart — UART transport layer + frame protocol + session + 2 new tests
 
 ## Roadmap
 
@@ -59,22 +61,25 @@
 
 ## Next steps
 
-- Push to GitHub and verify CI passes (4-target matrix: Ubuntu GCC/Clang, Windows MSVC/ClangCL)
-- Once CI green on main, proceed to v0.4.0-uart (PROMPT 3)
+1. ✅ v0.4.0-uart complete (all 13 tests passing, source committed)
+2. ⏳ v0.5.0-stm32 source code written (awaiting hardware for validation)
+3. 🔄 v0.6.0-esp32 to follow (v0.5.0-stm32 tested)
 
 ## Not implemented
 
-- Transport ports (UART v0.4.0)
-- Hardware adapters (STM32/ESP32 v0.5.0–v0.6.0)
-- Hardware validation
+- Hardware adapters (STM32/ESP32 v0.5.0–v0.6.0) — source code written, hardware validation pending
+- Hardware validation (requires physical boards)
+
+## In progress
+
+- v0.5.0-stm32: STM32 internal flash adapter (source complete, awaiting hardware test)
+- v0.6.0-esp32: ESP32 flash adapter (next milestone)
 
 ## User-owned actions
 
-- Create GitHub repository: https://github.com/Vanderhell/loxboot
-- Push initial commit
-- Create and push tag: v0.1.0-spec
-- Verify GitHub Actions (CI will pass at v0.1.0 — no sources, no tests to fail)
-- For each subsequent milestone: verify CI, push tag
+- Push v0.4.0-uart tag to GitHub and verify CI passes (4-target matrix: Ubuntu GCC/Clang, Windows MSVC/ClangCL)
+- For v0.5.0-stm32: provide STM32 HAL headers via include path and test on physical hardware
+- For v0.6.0-esp32: implement and test on ESP32 hardware
 
 ## Open questions (must answer before v0.2.0)
 

@@ -47,16 +47,17 @@
 | Dual-copy corruption recovery | `src/loxboot_state.c` lines 106–132 | CTest via test_loxboot_state_edges.c | VERIFIED | Read primary or backup; restore primary from backup if corrupt |
 | Test jump hook | `src/loxboot_core.c` lines 310–312, 526–531 | CTest (all new tests) | VERIFIED | Intercepted via g_jump_hook when LOXBOOT_TEST_HOOKS=1 |
 | **v0.4.0-uart** | | | | |
-| UART frame encode/decode | `ports/uart/loxboot_uart.c` | n/a | NOT IMPLEMENTED | v0.4.0 |
-| loxboot_crc16 | `ports/uart/loxboot_uart.c` | n/a | NOT IMPLEMENTED | v0.4.0 |
-| UART session: CMD_HELLO | `ports/uart/loxboot_uart.c` | n/a | NOT IMPLEMENTED | v0.4.0 |
-| UART session: CMD_WRITE | `ports/uart/loxboot_uart.c` | n/a | NOT IMPLEMENTED | v0.4.0 |
-| UART session: CMD_COMMIT | `ports/uart/loxboot_uart.c` | n/a | NOT IMPLEMENTED | v0.4.0 |
-| UART session: CMD_ABORT | `ports/uart/loxboot_uart.c` | n/a | NOT IMPLEMENTED | v0.4.0 |
-| UART frame tests | `tests/test_loxboot_uart_frame.c` | n/a | NOT IMPLEMENTED | v0.4.0 |
-| UART receive tests | `tests/test_loxboot_uart_receive.c` | n/a | NOT IMPLEMENTED | v0.4.0 |
+| UART frame encode/decode | `ports/uart/loxboot_uart.c` | CTest (2 tests) | VERIFIED | SOF | CMD | LEN | PAYLOAD | CRC16 frame format per SPEC §11 |
+| loxboot_crc16 | `ports/uart/loxboot_uart.c` | CTest (test_loxboot_uart_frame.c) | VERIFIED | CRC16-CCITT table-driven implementation (poly 0x1021, init 0xFFFF) |
+| UART session: CMD_HELLO | `ports/uart/loxboot_uart.c` lines 294–299 | CTest (test_loxboot_uart_receive.c) | VERIFIED | Session initialization on HELLO; RSP_STATUS sent with slot states |
+| UART session: CMD_WRITE | `ports/uart/loxboot_uart.c` lines 300–325 | CTest (test_loxboot_uart_receive.c) | VERIFIED | Data written to target slot at correct offsets; out-of-bounds checked |
+| UART session: CMD_COMMIT | `ports/uart/loxboot_uart.c` lines 326–341 | CTest (test_loxboot_uart_receive.c) | VERIFIED | CRC32 verification; slot marked PENDING on match; RSP_ERROR on mismatch |
+| UART session: CMD_ABORT | `ports/uart/loxboot_uart.c` lines 342–346 | CTest (test_loxboot_uart_receive.c) | VERIFIED | Target slot invalidated; RSP_OK sent; session returns |
+| UART frame tests | `tests/test_loxboot_uart_frame.c` | CTest (4 tests) | VERIFIED | CRC16 known vectors, empty, consistency, data sensitivity |
+| UART receive tests | `tests/test_loxboot_uart_receive.c` | CTest (3 tests) | VERIFIED | No HELLO timeout; session init; CRC16 API available |
+| Integration into boot sequence | `src/loxboot_core.c` step [1.5] | CTest (test_loxboot_boot_sequence.c) | VERIFIED | UART session runs before slot selection; state re-read after session ends |
 | **v0.5.0-stm32** | | | | |
-| STM32 flash adapter | `adapters/stm32/loxboot_flash_stm32.c` | n/a | NOT IMPLEMENTED | v0.5.0 |
+| STM32 flash adapter | `adapters/stm32/loxboot_flash_stm32.c` + header | Build (arm-none-eabi-gcc -Wall -Wextra -Wpedantic -Werror) | IMPLEMENTED | Hardware-only verification; requires STM32 HAL headers and actual hardware |
 | STM32 flash adapter hardware test | Hardware | n/a | NOT VERIFIED | Hardware-only |
 | **v0.6.0-esp32** | | | | |
 | ESP32 flash adapter | `adapters/esp32/loxboot_flash_esp32.c` | n/a | NOT IMPLEMENTED | v0.6.0 |

@@ -146,6 +146,77 @@ void bootloader_main(void) {
 
 ---
 
+## STM32 internal flash adapter (v0.5.0+)
+
+loxboot includes a ready-made adapter for STM32 internal flash using the STM32 HAL.
+
+### Setup
+
+1. **Include the adapter header:**
+   ```c
+   #include "loxboot_flash_stm32.h"
+   ```
+
+2. **Provide STM32 HAL via include path:**
+   The adapter includes a single header `stm32_hal.h` which your build must provide.
+   This allows the adapter to work with any STM32 variant (F0, F1, F4, H7, etc).
+
+   In your CMakeLists.txt or build system:
+   ```cmake
+   include_directories(/path/to/stm32_hal_headers)
+   target_compile_definitions(your_target PRIVATE LOXBOOT_BUILD_STM32_ADAPTER=ON)
+   ```
+
+   The `stm32_hal.h` file should be a wrapper that includes the correct HAL header:
+   ```c
+   /* stm32_hal.h — user-provided wrapper */
+   #ifndef STM32_HAL_H
+   #define STM32_HAL_H
+
+   #include "stm32f4xx_hal.h"  /* or stm32h7xx_hal.h, stm32f0xx_hal.h, etc */
+
+   #endif
+   ```
+
+3. **Initialize the adapter in your bootloader:**
+   ```c
+   #include "loxboot_flash_stm32.h"
+
+   void bootloader_main(void) {
+       loxboot_t ctx = {0};
+       loxboot_stm32_flash_ctx_t flash_ctx = {0};
+
+       /* Initialize STM32 flash adapter */
+       loxboot_stm32_flash_adapter_init(&ctx.flash, &flash_ctx);
+
+       /* Set remaining context fields (clock, hal, platform, etc) */
+       ctx.clock.now_ms = my_clock_now_ms;
+       ctx.hal.on_fatal = my_fatal;
+       /* ... */
+
+       /* Initialize and run */
+       loxboot_init(&ctx);
+       loxboot_run(&ctx);  /* Never returns */
+   }
+   ```
+
+### How the adapter works
+
+- **read**: Direct memory-mapped read from flash address (no HAL call needed)
+- **write**: Uses `HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, ...)` to write 8-byte chunks.
+  Returns `LOXBOOT_ERR_FLASH_WRITE` on HAL error.
+- **erase**: Uses `HAL_FLASHEx_Erase()` to erase pages.
+  Requires page-aligned address and length. Returns `LOXBOOT_ERR_INVALID_ARG` if not aligned.
+
+### Hardware verification
+
+The adapter is compiled with `-Wall -Wextra -Wpedantic -Werror` on your target toolchain.
+You must:
+1. Configure your platform's `FLASH_PAGE_SIZE` and flash bank via the HAL.
+2. Test the adapter on actual hardware before deployment.
+
+---
+
 ## Flash adapter rules
 
 1. `read` must work for any byte-aligned address and length within slot or boot state region.
