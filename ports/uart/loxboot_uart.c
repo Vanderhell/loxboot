@@ -49,8 +49,8 @@ uint16_t loxboot_crc16(const uint8_t *data, size_t len)
 {
     uint16_t crc = 0xFFFFU;
     for (size_t i = 0u; i < len; i++) {
-        uint8_t index = (uint8_t)((crc ^ data[i]) & 0xFFU);
-        crc = (uint16_t)((crc >> 8) ^ g_crc16_table[index]);
+        uint8_t index = (uint8_t)((crc >> 8) ^ data[i]);
+        crc = (uint16_t)(((crc << 8) ^ g_crc16_table[index]) & 0xFFFFU);
     }
     return crc;
 }
