@@ -29,6 +29,17 @@ static void test_crc16_empty(void)
     CHECK_EQ_INT(crc, 0xFFFF);
 }
 
+/* Test CRC16 with known test vector (CCITT-FALSE standard) */
+static void test_crc16_known_vector(void)
+{
+    /* "123456789" should produce 0x29B1 for CRC16-CCITT-FALSE */
+    uint8_t data[] = {'1', '2', '3', '4', '5', '6', '7', '8', '9'};
+    uint16_t crc = loxboot_crc16(data, sizeof(data));
+
+    /* Known good value for CRC16-CCITT-FALSE (poly 0x1021, init 0xFFFF) */
+    CHECK_EQ_INT(crc, 0x29B1);
+}
+
 /* Test CRC16 consistency */
 static void test_crc16_consistency(void)
 {
@@ -54,6 +65,7 @@ int main(void)
 {
     run_test("crc16_known_vectors", test_crc16_known_vectors);
     run_test("crc16_empty", test_crc16_empty);
+    run_test("crc16_known_vector", test_crc16_known_vector);
     run_test("crc16_consistency", test_crc16_consistency);
     run_test("crc16_data_sensitivity", test_crc16_data_sensitivity);
 
