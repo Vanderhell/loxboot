@@ -15,9 +15,9 @@ Minimal, adapter-based bootloader core for bare-metal MCUs. Production-ready for
 
 Known limitations requiring vendor customization before deployment:
 - **Jump/boot mechanism**: ARM Cortex-M only (Xtensa/RISC-V need platform-specific code)
-- **CRC16**: Non-standard implementation (fails known-vector tests)
-- **UART tests**: Lightweight (does not validate full update flow)
 - **Platform adapters**: Require hardware validation (CI cannot test STM32/ESP32 without vendor HAL)
+- **Power-loss tests**: Not yet implemented (unit tests exist for state recovery)
+- **State-machine invariant tests**: Core validation present, extended tests pending
 
 ## Overview
 
@@ -153,9 +153,10 @@ ctest --test-dir build -C Debug --output-on-failure
 - **v0.3.0 boot sequence (3 tests):** loxboot_run, rollback, crash loop
 - **v0.4.0 UART (2 tests):** Frame protocol, session handling
 
-**Tested in CI (4-target matrix):**
+**Tested in CI (5-target matrix):**
 - Ubuntu GCC with `-Wall -Wextra -Wpedantic -Werror`
 - Ubuntu Clang with `-Wall -Wextra -Wpedantic -Werror`
+- Ubuntu arm-none-eabi-gcc (ARM Cortex-M cross-compile, core-only)
 - Windows MSVC with `/W4 /WX`
 - Windows Clang-cl with `-Wall -Wextra -Werror`
 
