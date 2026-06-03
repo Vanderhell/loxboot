@@ -325,13 +325,8 @@ static void loxboot_jump_to_app(uint32_t slot_base)
     }
 #endif
 
-#ifndef __GNUC__
     volatile uint32_t *p_sp = (volatile uint32_t *)(uintptr_t)slot_base;
     volatile uint32_t *p_entry = (volatile uint32_t *)(uintptr_t)(slot_base + 4u);
-#else
-    volatile uint32_t *p_sp = (volatile uint32_t *)(slot_base);
-    volatile uint32_t *p_entry = (volatile uint32_t *)(slot_base + 4u);
-#endif
 
     uint32_t sp = *p_sp;
     uint32_t entry = *p_entry;
@@ -339,7 +334,7 @@ static void loxboot_jump_to_app(uint32_t slot_base)
     typedef void (*loxboot_jump_fn_t)(void);
     loxboot_jump_fn_t app = (loxboot_jump_fn_t)(uintptr_t)(entry | 1u);
 
-#if defined(__GNUC__) || defined(__clang__)
+#if defined(__arm__) || defined(__thumb__) || defined(__ARM_ARCH)
     __asm volatile ("MSR msp, %0" : : "r"(sp) : );
 #else
     (void)sp;
@@ -431,7 +426,8 @@ loxboot_err_t loxboot_run(loxboot_t *ctx)
 
     /* [2] Determine candidate slot */
 boot_retry:
-    loxboot_slot_id_t active_slot = (loxboot_slot_id_t)ctx->state.active_slot;
+    {
+        loxboot_slot_id_t active_slot = (loxboot_slot_id_t)ctx->state.active_slot;
     if (!loxboot_slot_id_valid(active_slot) ||
         ctx->state.slots[active_slot].state == LOXBOOT_SLOT_STATE_EMPTY ||
         ctx->state.slots[active_slot].state == LOXBOOT_SLOT_STATE_INVALID) {
@@ -572,6 +568,7 @@ boot_retry:
     /* [8] Jump to application */
     ctx->active_slot = active_slot;
     loxboot_jump_to_app(slot_base);
+    }
 
 #ifdef LOXBOOT_TEST_HOOKS
     return LOXBOOT_OK;
