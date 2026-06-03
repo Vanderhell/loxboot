@@ -37,6 +37,7 @@ jobs:
         run: |
           cmake -B build \
             -DCMAKE_C_COMPILER=gcc \
+            -DCMAKE_C_FLAGS="-Wall -Wextra -Wpedantic -Werror" \
             -DLOXBOOT_BUILD_TESTS=ON \
             -DLOXBOOT_BUILD_UART_PORT=OFF \
             -DCMAKE_BUILD_TYPE=Release
@@ -46,6 +47,7 @@ jobs:
         run: |
           cmake -B build \
             -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_C_FLAGS="-Wall -Wextra -Wpedantic -Werror" \
             -DLOXBOOT_BUILD_TESTS=ON \
             -DLOXBOOT_BUILD_UART_PORT=OFF \
             -DCMAKE_BUILD_TYPE=Release
@@ -54,6 +56,7 @@ jobs:
         if: matrix.os == 'windows-latest' && matrix.compiler == 'msvc'
         run: |
           cmake -B build `
+            -DCMAKE_C_FLAGS="/W4 /WX" `
             -DLOXBOOT_BUILD_TESTS=ON `
             -DLOXBOOT_BUILD_UART_PORT=OFF
 
@@ -62,6 +65,7 @@ jobs:
         run: |
           cmake -B build `
             -T ClangCL `
+            -DCMAKE_C_FLAGS="-Wall -Wextra -Werror" `
             -DLOXBOOT_BUILD_TESTS=ON `
             -DLOXBOOT_BUILD_UART_PORT=OFF
 

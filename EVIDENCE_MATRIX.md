@@ -37,7 +37,7 @@
 | loxboot_request_slot | `src/loxboot_core.c` | CTest (MSVC + clang-cl Debug/Release) | VERIFIED | No reboot/jump behavior in v0.2.0 |
 | loxboot_request_slot tests | `tests/test_loxboot_request_slot.c` | CTest (MSVC + clang-cl Debug/Release) | VERIFIED | No reboot/jump behavior in v0.2.0 |
 | Boot state edge-case tests | `tests/test_loxboot_state_edges.c` | CTest (MSVC + clang-cl Debug/Release) | VERIFIED | RAM flash model only |
-| GitHub Actions CI passing | GitHub Actions | n/a | NOT VERIFIED | Requires v0.2.0 |
+| GitHub Actions CI passing | `.github/workflows/ci.yml` 4-target matrix | GitHub Actions (pending merge to main) | IMPLEMENTED | Ubuntu GCC/Clang + Windows MSVC/ClangCL, all with -Werror |
 | **v0.3.0-boot-sequence** | | | | |
 | loxboot_run full sequence | `src/loxboot_core.c` lines 380–522 | CTest (6 tests) | VERIFIED | All steps 1–8 verified; test mode uses flash adapter for firmware CRC |
 | loxboot_run tests | `tests/test_loxboot_boot_sequence.c` | CTest (6 tests) | VERIFIED | All scenarios passing: valid slot, PENDING→ACTIVE, CRC fail fallback, no valid slot, state corrupt, boot_attempts counter |

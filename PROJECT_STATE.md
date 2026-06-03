@@ -57,9 +57,13 @@
 5. Update EVIDENCE_MATRIX.md, PROJECT_STATE.md
 6. Tag v0.4.0-uart
 
+## Next steps
+
+- Push to GitHub and verify CI passes (4-target matrix: Ubuntu GCC/Clang, Windows MSVC/ClangCL)
+- Once CI green on main, proceed to v0.4.0-uart (PROMPT 3)
+
 ## Not implemented
 
-- GitHub Actions CI verification (Linux GCC/Clang)
 - Transport ports (UART v0.4.0)
 - Hardware adapters (STM32/ESP32 v0.5.0–v0.6.0)
 - Hardware validation
