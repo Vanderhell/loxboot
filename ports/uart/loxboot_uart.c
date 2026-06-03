@@ -5,10 +5,12 @@
 
 #include "loxboot/loxboot.h"
 #include "loxboot/loxboot_transport.h"
-#include "loxboot_uart.h"
+
+/* Internal state helpers from loxboot_core */
+extern loxboot_err_t loxboot_state_read(loxboot_t *ctx, loxboot_state_t *out_state);
 
 /* CRC16-CCITT table (poly 0x1021, init 0xFFFF) */
-static const uint16_t loxboot_crc16_table[256] = {
+static const uint16_t g_crc16_table[256] = {
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5, 0x60C6, 0x70E7,
     0x8108, 0x9129, 0xA14A, 0xB16B, 0xC18C, 0xD1AD, 0xE1CE, 0xF1EF,
     0x1231, 0x0210, 0x3273, 0x2252, 0x52B5, 0x4294, 0x72F7, 0x62D6,
@@ -43,17 +45,17 @@ static const uint16_t loxboot_crc16_table[256] = {
     0x6E17, 0x7E36, 0x4E55, 0x5E74, 0x2E93, 0x3EB2, 0x0ED1, 0x1EF0
 };
 
-static uint16_t loxboot_crc16(const uint8_t *data, size_t len)
+uint16_t loxboot_crc16(const uint8_t *data, size_t len)
 {
     uint16_t crc = 0xFFFFU;
     for (size_t i = 0u; i < len; i++) {
         uint8_t index = (uint8_t)((crc ^ data[i]) & 0xFFU);
-        crc = (uint16_t)((crc >> 8) ^ loxboot_crc16_table[index]);
+        crc = (uint16_t)((crc >> 8) ^ g_crc16_table[index]);
     }
     return crc;
 }
 
-static loxboot_err_t loxboot_uart_frame_encode(
+loxboot_err_t loxboot_uart_frame_encode(
     uint8_t cmd,
     const uint8_t *payload,
     uint16_t payload_len,
@@ -88,7 +90,7 @@ static loxboot_err_t loxboot_uart_frame_encode(
     return LOXBOOT_OK;
 }
 
-static loxboot_err_t loxboot_uart_frame_decode(
+loxboot_err_t loxboot_uart_frame_decode(
     const uint8_t *in,
     size_t in_len,
     uint8_t *cmd_out,
@@ -130,35 +132,51 @@ static loxboot_err_t loxboot_uart_frame_decode(
     return LOXBOOT_OK;
 }
 
-static loxboot_err_t loxboot_uart_send_response(
-    loxboot_t *ctx,
-    uint8_t response_code,
-    const uint8_t *payload,
-    uint16_t payload_len)
+loxboot_err_t loxboot_uart_send_status(loxboot_uart_session_t *session)
 {
-    uint8_t frame[LOXBOOT_UART_MAX_FRAME_PAYLOAD + 7u];
+    if (session == NULL || session->boot == NULL) {
+        return LOXBOOT_ERR_INVALID_ARG;
+    }
+
+    uint8_t payload[4] = {
+        session->boot->state.slots[0].state,
+        session->boot->state.slots[1].state,
+        session->boot->state.active_slot,
+        session->boot->state.boot_reason
+    };
+
+    uint8_t frame[LOXBOOT_UART_MAX_FRAME_PAYLOAD + 8u];
     size_t frame_len = sizeof(frame);
 
-    loxboot_err_t err = loxboot_uart_frame_encode(response_code, payload, payload_len, frame, &frame_len);
+    loxboot_err_t err = loxboot_uart_frame_encode(
+        LOXBOOT_UART_RSP_STATUS,
+        payload,
+        sizeof(payload),
+        frame,
+        &frame_len);
+
     if (err != LOXBOOT_OK) {
         return err;
     }
 
     for (size_t i = 0u; i < frame_len; i++) {
-        err = ctx->transport.write_byte(ctx->transport.ctx, frame[i]);
+        err = session->boot->transport.write_byte(session->boot->transport.ctx, frame[i]);
         if (err != LOXBOOT_OK) {
             return err;
         }
     }
 
-    return ctx->transport.flush(ctx->transport.ctx);
+    return session->boot->transport.flush(session->boot->transport.ctx);
 }
 
-loxboot_err_t loxboot_uart_run(loxboot_t *ctx, loxboot_uart_session_t *session)
+loxboot_err_t loxboot_uart_run_session(loxboot_uart_session_t *session)
 {
-    if (ctx == NULL || session == NULL) {
+    if (session == NULL || session->boot == NULL) {
         return LOXBOOT_ERR_INVALID_ARG;
     }
+
+    loxboot_t *ctx = session->boot;
+
     if (ctx->transport.read_byte == NULL || ctx->transport.write_byte == NULL) {
         return LOXBOOT_ERR_INVALID_ARG;
     }
@@ -167,13 +185,11 @@ loxboot_err_t loxboot_uart_run(loxboot_t *ctx, loxboot_uart_session_t *session)
     }
 
     uint32_t listen_start = ctx->clock.now_ms(ctx->clock.ctx);
-    uint32_t listen_timeout = (uint32_t)LOXBOOT_UART_LISTEN_MS;
+    uint32_t listen_timeout = (session->listen_ms > 0u) ? session->listen_ms : LOXBOOT_UART_LISTEN_MS;
 
-    uint8_t frame_buf[LOXBOOT_UART_MAX_FRAME_PAYLOAD + 7u];
     uint8_t payload_buf[LOXBOOT_UART_MAX_FRAME_PAYLOAD];
     loxboot_err_t err = LOXBOOT_OK;
 
-    memset(session, 0, sizeof(*session));
     loxboot_state_t state;
     err = loxboot_state_read(ctx, &state);
     if (err != LOXBOOT_OK) {
@@ -181,11 +197,14 @@ loxboot_err_t loxboot_uart_run(loxboot_t *ctx, loxboot_uart_session_t *session)
     }
 
     loxboot_slot_id_t active_slot = (loxboot_slot_id_t)state.active_slot;
-    session->target_slot = (active_slot == LOXBOOT_SLOT_A) ? LOXBOOT_SLOT_B : LOXBOOT_SLOT_A;
-    session->write_offset = 0u;
-    session->last_write_error = LOXBOOT_OK;
+    loxboot_slot_id_t target_slot = (active_slot == LOXBOOT_SLOT_A) ? LOXBOOT_SLOT_B : LOXBOOT_SLOT_A;
+    uint32_t target_slot_base = (target_slot == LOXBOOT_SLOT_A) ?
+                                ctx->platform.slot_a_base : ctx->platform.slot_b_base;
 
-    uint32_t cmd_timeout = (uint32_t)LOXBOOT_UART_LISTEN_MS;
+    session->_session_active = false;
+    session->_bytes_written = 0u;
+
+    uint32_t frame_timeout = 5000u;
 
     while (1) {
         uint32_t now = ctx->clock.now_ms(ctx->clock.ctx);
@@ -210,48 +229,42 @@ loxboot_err_t loxboot_uart_run(loxboot_t *ctx, loxboot_uart_session_t *session)
             continue;
         }
 
-        frame_buf[0] = byte;
-        size_t frame_idx = 1u;
+        size_t frame_idx = 0u;
+        session->_frame_buf[frame_idx++] = byte;
         uint16_t payload_len = 0xFFFFU;
-        uint32_t frame_timeout = 5000u;
 
-        while (frame_idx < sizeof(frame_buf)) {
-            if (frame_idx < 4u) {
-                err = ctx->transport.read_byte(ctx->transport.ctx, &frame_buf[frame_idx], frame_timeout);
-                if (err != LOXBOOT_OK) {
-                    err = loxboot_uart_send_response(ctx, LOXBOOT_UART_RSP_ERROR, (uint8_t *)&err, 1u);
-                    loxboot_invalidate_slot(ctx, session->target_slot);
-                    break;
+        while (frame_idx < sizeof(session->_frame_buf)) {
+            err = ctx->transport.read_byte(ctx->transport.ctx, &session->_frame_buf[frame_idx], frame_timeout);
+            if (err != LOXBOOT_OK) {
+                loxboot_invalidate_slot(ctx, target_slot);
+                uint8_t err_byte = (uint8_t)LOXBOOT_ERR_TRANSPORT;
+                loxboot_uart_frame_encode(LOXBOOT_UART_RSP_ERROR, &err_byte, 1u, session->_frame_buf, &frame_idx);
+                for (size_t i = 0u; i < frame_idx; i++) {
+                    ctx->transport.write_byte(ctx->transport.ctx, session->_frame_buf[i]);
                 }
-                frame_idx++;
+                ctx->transport.flush(ctx->transport.ctx);
+                break;
+            }
 
-                if (frame_idx == 4u) {
-                    payload_len = (uint16_t)(frame_buf[2] | (frame_buf[3] << 8));
-                    if (payload_len > LOXBOOT_UART_MAX_FRAME_PAYLOAD) {
-                        err = LOXBOOT_ERR_TRANSPORT;
-                        err = loxboot_uart_send_response(ctx, LOXBOOT_UART_RSP_ERROR, (uint8_t *)&err, 1u);
-                        loxboot_invalidate_slot(ctx, session->target_slot);
-                        break;
+            frame_idx++;
+
+            if (frame_idx == 4u) {
+                payload_len = (uint16_t)(session->_frame_buf[2] | (session->_frame_buf[3] << 8));
+                if (payload_len > LOXBOOT_UART_MAX_FRAME_PAYLOAD) {
+                    loxboot_invalidate_slot(ctx, target_slot);
+                    uint8_t err_byte = (uint8_t)LOXBOOT_ERR_TRANSPORT;
+                    size_t resp_len = sizeof(session->_frame_buf);
+                    loxboot_uart_frame_encode(LOXBOOT_UART_RSP_ERROR, &err_byte, 1u, session->_frame_buf, &resp_len);
+                    for (size_t i = 0u; i < resp_len; i++) {
+                        ctx->transport.write_byte(ctx->transport.ctx, session->_frame_buf[i]);
                     }
-                }
-            } else {
-                size_t remaining_payload = (size_t)(4u + payload_len + 2u - frame_idx);
-                size_t to_read = (remaining_payload > 1u) ? remaining_payload : 1u;
-                if (to_read > 1u) {
-                    to_read = 1u;
-                }
-
-                err = ctx->transport.read_byte(ctx->transport.ctx, &frame_buf[frame_idx], frame_timeout);
-                if (err != LOXBOOT_OK) {
-                    err = loxboot_uart_send_response(ctx, LOXBOOT_UART_RSP_ERROR, (uint8_t *)&err, 1u);
-                    loxboot_invalidate_slot(ctx, session->target_slot);
+                    ctx->transport.flush(ctx->transport.ctx);
                     break;
                 }
-                frame_idx++;
+            }
 
-                if (frame_idx == 4u + payload_len + 2u) {
-                    break;
-                }
+            if (frame_idx == 4u + payload_len + 2u) {
+                break;
             }
         }
 
@@ -261,9 +274,15 @@ loxboot_err_t loxboot_uart_run(loxboot_t *ctx, loxboot_uart_session_t *session)
 
         uint8_t cmd;
         uint16_t pl_len;
-        err = loxboot_uart_frame_decode(frame_buf, frame_idx, &cmd, payload_buf, &pl_len);
+        err = loxboot_uart_frame_decode(session->_frame_buf, frame_idx, &cmd, payload_buf, &pl_len);
         if (err != LOXBOOT_OK) {
-            err = loxboot_uart_send_response(ctx, LOXBOOT_UART_RSP_ERROR, (uint8_t *)&err, 1u);
+            uint8_t err_byte = (uint8_t)LOXBOOT_ERR_TRANSPORT;
+            size_t resp_len = sizeof(session->_frame_buf);
+            loxboot_uart_frame_encode(LOXBOOT_UART_RSP_ERROR, &err_byte, 1u, session->_frame_buf, &resp_len);
+            for (size_t i = 0u; i < resp_len; i++) {
+                ctx->transport.write_byte(ctx->transport.ctx, session->_frame_buf[i]);
+            }
+            ctx->transport.flush(ctx->transport.ctx);
             continue;
         }
 
@@ -273,6 +292,8 @@ loxboot_err_t loxboot_uart_run(loxboot_t *ctx, loxboot_uart_session_t *session)
 
         switch (cmd) {
             case LOXBOOT_UART_CMD_HELLO: {
+                session->_session_active = true;
+                loxboot_state_read(ctx, &state);
                 response_code = LOXBOOT_UART_RSP_STATUS;
                 response_payload[0] = state.slots[0].state;
                 response_payload[1] = state.slots[1].state;
@@ -285,8 +306,7 @@ loxboot_err_t loxboot_uart_run(loxboot_t *ctx, loxboot_uart_session_t *session)
             case LOXBOOT_UART_CMD_WRITE: {
                 if (pl_len < 4u) {
                     response_code = LOXBOOT_UART_RSP_ERROR;
-                    loxboot_err_t err_code = LOXBOOT_ERR_INVALID_ARG;
-                    response_payload[0] = (uint8_t)err_code;
+                    response_payload[0] = (uint8_t)LOXBOOT_ERR_INVALID_ARG;
                     response_payload_len = 1u;
                     break;
                 }
@@ -296,26 +316,21 @@ loxboot_err_t loxboot_uart_run(loxboot_t *ctx, loxboot_uart_session_t *session)
 
                 if (offset + write_len > ctx->platform.slot_size) {
                     response_code = LOXBOOT_UART_RSP_ERROR;
-                    loxboot_err_t err_code = LOXBOOT_ERR_INVALID_ARG;
-                    response_payload[0] = (uint8_t)err_code;
+                    response_payload[0] = (uint8_t)LOXBOOT_ERR_INVALID_ARG;
                     response_payload_len = 1u;
                     break;
                 }
 
-                uint32_t slot_base = (session->target_slot == LOXBOOT_SLOT_A) ?
-                                     ctx->platform.slot_a_base : ctx->platform.slot_b_base;
-
-                err = ctx->flash.write(ctx->flash.ctx, slot_base + offset, &payload_buf[4], write_len);
+                err = ctx->flash.write(ctx->flash.ctx, target_slot_base + offset, &payload_buf[4], write_len);
                 if (err != LOXBOOT_OK) {
                     response_code = LOXBOOT_UART_RSP_ERROR;
                     response_payload[0] = (uint8_t)err;
                     response_payload_len = 1u;
-                    loxboot_invalidate_slot(ctx, session->target_slot);
-                    session->last_write_error = err;
+                    loxboot_invalidate_slot(ctx, target_slot);
                     break;
                 }
 
-                session->write_offset = offset + write_len;
+                session->_bytes_written = offset + write_len;
                 response_code = LOXBOOT_UART_RSP_OK;
                 break;
             }
@@ -323,8 +338,7 @@ loxboot_err_t loxboot_uart_run(loxboot_t *ctx, loxboot_uart_session_t *session)
             case LOXBOOT_UART_CMD_COMMIT: {
                 if (pl_len < 8u) {
                     response_code = LOXBOOT_UART_RSP_ERROR;
-                    loxboot_err_t err_code = LOXBOOT_ERR_INVALID_ARG;
-                    response_payload[0] = (uint8_t)err_code;
+                    response_payload[0] = (uint8_t)LOXBOOT_ERR_INVALID_ARG;
                     response_payload_len = 1u;
                     break;
                 }
@@ -332,21 +346,12 @@ loxboot_err_t loxboot_uart_run(loxboot_t *ctx, loxboot_uart_session_t *session)
                 uint32_t firmware_size = (uint32_t)(payload_buf[0] | (payload_buf[1] << 8) | (payload_buf[2] << 16) | (payload_buf[3] << 24));
                 uint32_t firmware_crc32 = (uint32_t)(payload_buf[4] | (payload_buf[5] << 8) | (payload_buf[6] << 16) | (payload_buf[7] << 24));
 
-                loxboot_state_t commit_state;
-                err = loxboot_state_read(ctx, &commit_state);
+                err = loxboot_commit_slot(ctx, target_slot, firmware_size, firmware_crc32);
                 if (err != LOXBOOT_OK) {
                     response_code = LOXBOOT_UART_RSP_ERROR;
                     response_payload[0] = (uint8_t)err;
                     response_payload_len = 1u;
-                    break;
-                }
-
-                err = loxboot_commit_slot(ctx, session->target_slot, firmware_size, firmware_crc32);
-                if (err != LOXBOOT_OK) {
-                    response_code = LOXBOOT_UART_RSP_ERROR;
-                    response_payload[0] = (uint8_t)err;
-                    response_payload_len = 1u;
-                    loxboot_invalidate_slot(ctx, session->target_slot);
+                    loxboot_invalidate_slot(ctx, target_slot);
                     break;
                 }
 
@@ -355,14 +360,14 @@ loxboot_err_t loxboot_uart_run(loxboot_t *ctx, loxboot_uart_session_t *session)
             }
 
             case LOXBOOT_UART_CMD_ABORT: {
-                loxboot_invalidate_slot(ctx, session->target_slot);
+                loxboot_invalidate_slot(ctx, target_slot);
                 response_code = LOXBOOT_UART_RSP_OK;
+                session->_session_active = false;
                 break;
             }
 
             case LOXBOOT_UART_CMD_STATUS: {
-                loxboot_state_t status_state;
-                err = loxboot_state_read(ctx, &status_state);
+                err = loxboot_state_read(ctx, &state);
                 if (err != LOXBOOT_OK) {
                     response_code = LOXBOOT_UART_RSP_ERROR;
                     response_payload[0] = (uint8_t)err;
@@ -371,36 +376,43 @@ loxboot_err_t loxboot_uart_run(loxboot_t *ctx, loxboot_uart_session_t *session)
                 }
 
                 response_code = LOXBOOT_UART_RSP_STATUS;
-                response_payload[0] = status_state.slots[0].state;
-                response_payload[1] = status_state.slots[1].state;
-                response_payload[2] = status_state.active_slot;
-                response_payload[3] = status_state.boot_reason;
+                response_payload[0] = state.slots[0].state;
+                response_payload[1] = state.slots[1].state;
+                response_payload[2] = state.active_slot;
+                response_payload[3] = state.boot_reason;
                 response_payload_len = 4u;
                 break;
             }
 
             case LOXBOOT_UART_CMD_REBOOT: {
-                err = loxboot_uart_send_response(ctx, LOXBOOT_UART_RSP_OK, NULL, 0u);
-                while (1) {}
-                break;
+                size_t resp_len = sizeof(session->_frame_buf);
+                loxboot_uart_frame_encode(LOXBOOT_UART_RSP_OK, NULL, 0u, session->_frame_buf, &resp_len);
+                for (size_t i = 0u; i < resp_len; i++) {
+                    ctx->transport.write_byte(ctx->transport.ctx, session->_frame_buf[i]);
+                }
+                ctx->transport.flush(ctx->transport.ctx);
+                return LOXBOOT_OK;
             }
 
             default: {
                 response_code = LOXBOOT_UART_RSP_ERROR;
-                loxboot_err_t err_code = LOXBOOT_ERR_INVALID_ARG;
-                response_payload[0] = (uint8_t)err_code;
+                response_payload[0] = (uint8_t)LOXBOOT_ERR_INVALID_ARG;
                 response_payload_len = 1u;
                 break;
             }
         }
 
-        err = loxboot_uart_send_response(ctx, response_code, response_payload, response_payload_len);
+        size_t resp_len = sizeof(session->_frame_buf);
+        loxboot_uart_frame_encode(response_code, response_payload, response_payload_len, session->_frame_buf, &resp_len);
+        for (size_t i = 0u; i < resp_len; i++) {
+            err = ctx->transport.write_byte(ctx->transport.ctx, session->_frame_buf[i]);
+            if (err != LOXBOOT_OK) {
+                return err;
+            }
+        }
+        err = ctx->transport.flush(ctx->transport.ctx);
         if (err != LOXBOOT_OK) {
             return err;
-        }
-
-        if (cmd == LOXBOOT_UART_CMD_REBOOT) {
-            while (1) {}
         }
     }
 

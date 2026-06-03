@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 #include "loxboot/loxboot.h"
-#include "loxboot_uart.h"
+#include "loxboot/loxboot_transport.h"
 #include "test_support.h"
 
 /* Mock transport adapter with byte buffer */
