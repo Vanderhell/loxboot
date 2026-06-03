@@ -1,0 +1,14 @@
+build/
+build-release/
+.vs/
+CMakeSettings.json
+CMakeUserPresets.json
+*.user
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+/build-clangcl
+/build-msvc
+/build-test

@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.os }} / ${{ matrix.compiler }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            compiler: gcc
+            cc: gcc
+            cxx: g++
+          - os: ubuntu-latest
+            compiler: clang
+            cc: clang
+            cxx: clang++
+          - os: windows-latest
+            compiler: msvc
+          - os: windows-latest
+            compiler: clang-cl
+            toolset: ClangCL
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure (Ubuntu GCC)
+        if: matrix.os == 'ubuntu-latest' && matrix.compiler == 'gcc'
+        run: |
+          cmake -B build \
+            -DCMAKE_C_COMPILER=gcc \
+            -DLOXBOOT_BUILD_TESTS=ON \
+            -DLOXBOOT_BUILD_UART_PORT=OFF \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Configure (Ubuntu Clang)
+        if: matrix.os == 'ubuntu-latest' && matrix.compiler == 'clang'
+        run: |
+          cmake -B build \
+            -DCMAKE_C_COMPILER=clang \
+            -DLOXBOOT_BUILD_TESTS=ON \
+            -DLOXBOOT_BUILD_UART_PORT=OFF \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Configure (Windows MSVC)
+        if: matrix.os == 'windows-latest' && matrix.compiler == 'msvc'
+        run: |
+          cmake -B build `
+            -DLOXBOOT_BUILD_TESTS=ON `
+            -DLOXBOOT_BUILD_UART_PORT=OFF
+
+      - name: Configure (Windows ClangCL)
+        if: matrix.os == 'windows-latest' && matrix.compiler == 'clang-cl'
+        run: |
+          cmake -B build `
+            -T ClangCL `
+            -DLOXBOOT_BUILD_TESTS=ON `
+            -DLOXBOOT_BUILD_UART_PORT=OFF
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
