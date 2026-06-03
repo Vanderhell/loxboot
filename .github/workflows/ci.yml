@@ -23,6 +23,10 @@ jobs:
             compiler: clang
             cc: clang
             cxx: clang++
+          - os: ubuntu-latest
+            compiler: gcc-arm
+            cc: arm-none-eabi-gcc
+            profile: "ARM cross-compile (core only)"
           - os: windows-latest
             compiler: msvc
           - os: windows-latest
@@ -68,6 +72,19 @@ jobs:
             -DCMAKE_C_FLAGS="-Wall -Wextra -Werror" `
             -DLOXBOOT_BUILD_TESTS=ON `
             -DLOXBOOT_BUILD_UART_PORT=ON
+
+      - name: Install ARM cross-compiler
+        if: matrix.compiler == 'gcc-arm'
+        run: sudo apt-get update && sudo apt-get install -y gcc-arm-none-eabi
+
+      - name: Configure (ARM cross-compile)
+        if: matrix.compiler == 'gcc-arm'
+        run: |
+          cmake -B build \
+            -DCMAKE_TOOLCHAIN_FILE="$(pwd)/cmake/toolchain-arm-none-eabi.cmake" \
+            -DLOXBOOT_BUILD_TESTS=OFF \
+            -DLOXBOOT_BUILD_UART_PORT=OFF \
+            -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build --config Release
