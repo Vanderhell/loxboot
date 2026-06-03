@@ -5,6 +5,10 @@
 
 #include "loxboot/loxboot.h"
 
+#ifdef LOXBOOT_BUILD_UART_PORT
+#include "../ports/uart/loxboot_uart.h"
+#endif
+
 /* Internal state helpers (implemented in src/loxboot_state.c). */
 loxboot_err_t loxboot_state_read(loxboot_t *ctx, loxboot_state_t *out_state);
 loxboot_err_t loxboot_state_read_header_crc_only(loxboot_t *ctx, loxboot_state_t *out_state);
@@ -393,6 +397,31 @@ loxboot_err_t loxboot_run(loxboot_t *ctx)
         while (1) {}
 #endif
     }
+
+#ifdef LOXBOOT_BUILD_UART_PORT
+    /* [1.5] UART update session (if transport adapter available) */
+    if (ctx->transport.read_byte != NULL && ctx->clock.now_ms != NULL) {
+        loxboot_uart_session_t uart_session;
+        err = loxboot_uart_run(ctx, &uart_session);
+        if (err != LOXBOOT_OK && err != LOXBOOT_ERR_TIMEOUT) {
+            ctx->hal.on_fatal(ctx->hal.ctx, err);
+#ifdef LOXBOOT_TEST_HOOKS
+            return LOXBOOT_OK;
+#else
+            while (1) {}
+#endif
+        }
+        err = loxboot_state_read(ctx, &ctx->state);
+        if (err != LOXBOOT_OK) {
+            ctx->hal.on_fatal(ctx->hal.ctx, err);
+#ifdef LOXBOOT_TEST_HOOKS
+            return LOXBOOT_OK;
+#else
+            while (1) {}
+#endif
+        }
+    }
+#endif
 
     /* [2] Determine candidate slot */
 boot_retry:

@@ -145,10 +145,15 @@ if(LOXBOOT_BUILD_TESTS)
         tests/test_loxboot_boot_sequence.c
         tests/test_loxboot_rollback.c
         tests/test_loxboot_crash_loop.c
-        # v0.4.0 — UART
-        # tests/test_loxboot_uart_frame.c
-        # tests/test_loxboot_uart_receive.c
     )
+
+    if(LOXBOOT_BUILD_UART_PORT)
+        list(APPEND LOXBOOT_TEST_FILES
+            # v0.4.0 — UART
+            tests/test_loxboot_uart_frame.c
+            tests/test_loxboot_uart_receive.c
+        )
+    endif()
 
     foreach(test_file IN LISTS LOXBOOT_TEST_FILES)
         if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${test_file}")
