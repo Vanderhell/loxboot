@@ -36,8 +36,8 @@ static void loxboot_slot_record_set_invalid(loxboot_slot_record_t *rec, loxboot_
 {
     memset(rec, 0, sizeof(*rec));
     rec->magic = LOXBOOT_SLOT_MAGIC;
-    rec->slot_id = (uint8_t)slot;
-    rec->state = (uint8_t)LOXBOOT_SLOT_STATE_INVALID;
+    rec->slot_id = slot;
+    rec->state = LOXBOOT_SLOT_STATE_INVALID;
     rec->boot_attempts = 0u;
     rec->flags = 0u;
     rec->firmware_size = 0u;
@@ -52,8 +52,8 @@ static void loxboot_slot_record_set_pending(loxboot_slot_record_t *rec,
 {
     memset(rec, 0, sizeof(*rec));
     rec->magic = LOXBOOT_SLOT_MAGIC;
-    rec->slot_id = (uint8_t)slot;
-    rec->state = (uint8_t)LOXBOOT_SLOT_STATE_PENDING;
+    rec->slot_id = slot;
+    rec->state = LOXBOOT_SLOT_STATE_PENDING;
     rec->boot_attempts = 0u;
     rec->flags = 0u;
     rec->firmware_size = firmware_size;
@@ -138,7 +138,7 @@ loxboot_err_t loxboot_get_slot_state(const loxboot_t *ctx,
     if (!ctx->initialized) {
         return LOXBOOT_ERR_INVALID_STATE;
     }
-    *out_state = (loxboot_slot_state_t)ctx->state.slots[(uint8_t)slot].state;
+    *out_state = (loxboot_slot_state_t)ctx->state.slots[slot].state;
     return LOXBOOT_OK;
 }
 
@@ -173,8 +173,8 @@ loxboot_err_t loxboot_commit_slot(loxboot_t *ctx,
         return LOXBOOT_ERR_INVALID_STATE;
     }
 
-    loxboot_slot_record_set_pending(&state.slots[(uint8_t)slot], slot, firmware_size, firmware_crc32);
-    state.boot_reason = (uint8_t)LOXBOOT_REASON_UNKNOWN;
+    loxboot_slot_record_set_pending(&state.slots[slot], slot, firmware_size, firmware_crc32);
+    state.boot_reason = LOXBOOT_REASON_UNKNOWN;
 
     err = loxboot_state_write(ctx, &state);
     if (err != LOXBOOT_OK) {
@@ -207,12 +207,12 @@ loxboot_err_t loxboot_invalidate_slot(loxboot_t *ctx, loxboot_slot_id_t slot)
         if (err != LOXBOOT_OK) {
             return err;
         }
-        loxboot_slot_record_set_invalid(&state.slots[(uint8_t)slot], slot);
+        loxboot_slot_record_set_invalid(&state.slots[slot], slot);
     } else {
-        state.slots[(uint8_t)slot].state = (uint8_t)LOXBOOT_SLOT_STATE_INVALID;
-        state.slots[(uint8_t)slot].boot_attempts = 0u;
-        state.slots[(uint8_t)slot].flags = 0u;
-        state.slots[(uint8_t)slot].record_crc32 = loxboot_slot_record_crc32(&state.slots[(uint8_t)slot]);
+        state.slots[slot].state = LOXBOOT_SLOT_STATE_INVALID;
+        state.slots[slot].boot_attempts = 0u;
+        state.slots[slot].flags = 0u;
+        state.slots[slot].record_crc32 = loxboot_slot_record_crc32(&state.slots[slot]);
     }
 
     err = loxboot_state_write(ctx, &state);
@@ -244,12 +244,12 @@ loxboot_err_t loxboot_confirm_boot(loxboot_t *ctx)
 
     loxboot_slot_record_t *rec = &state.slots[state.active_slot];
     uint8_t rec_state = rec->state;
-    if (rec_state != (uint8_t)LOXBOOT_SLOT_STATE_ACTIVE &&
-        rec_state != (uint8_t)LOXBOOT_SLOT_STATE_VALID) {
+    if (rec_state != LOXBOOT_SLOT_STATE_ACTIVE &&
+        rec_state != LOXBOOT_SLOT_STATE_VALID) {
         return LOXBOOT_ERR_INVALID_STATE;
     }
 
-    rec->state = (uint8_t)LOXBOOT_SLOT_STATE_VALID;
+    rec->state = LOXBOOT_SLOT_STATE_VALID;
     rec->boot_attempts = 0u;
     rec->flags = 0u;
     rec->record_crc32 = loxboot_slot_record_crc32(rec);
@@ -280,27 +280,27 @@ loxboot_err_t loxboot_request_slot(loxboot_t *ctx, loxboot_slot_id_t slot)
         return err;
     }
 
-    uint8_t target_state = state.slots[(uint8_t)slot].state;
-    if (target_state != (uint8_t)LOXBOOT_SLOT_STATE_VALID &&
-        target_state != (uint8_t)LOXBOOT_SLOT_STATE_ACTIVE) {
+    uint8_t target_state = state.slots[slot].state;
+    if (target_state != LOXBOOT_SLOT_STATE_VALID &&
+        target_state != LOXBOOT_SLOT_STATE_ACTIVE) {
         return LOXBOOT_ERR_INVALID_STATE;
     }
 
     /* Ensure only one ACTIVE slot is recorded. */
-    if (state.active_slot != (uint8_t)slot) {
+    if (state.active_slot != slot) {
         uint8_t prev = state.active_slot;
-        if (prev == (uint8_t)LOXBOOT_SLOT_A || prev == (uint8_t)LOXBOOT_SLOT_B) {
-            if (state.slots[prev].state == (uint8_t)LOXBOOT_SLOT_STATE_ACTIVE) {
-                state.slots[prev].state = (uint8_t)LOXBOOT_SLOT_STATE_VALID;
+        if (prev == LOXBOOT_SLOT_A || prev == LOXBOOT_SLOT_B) {
+            if (state.slots[prev].state == LOXBOOT_SLOT_STATE_ACTIVE) {
+                state.slots[prev].state = LOXBOOT_SLOT_STATE_VALID;
                 state.slots[prev].record_crc32 = loxboot_slot_record_crc32(&state.slots[prev]);
             }
         }
     }
 
-    state.active_slot = (uint8_t)slot;
-    state.boot_reason = (uint8_t)LOXBOOT_REASON_FORCED;
-    state.slots[(uint8_t)slot].state = (uint8_t)LOXBOOT_SLOT_STATE_ACTIVE;
-    state.slots[(uint8_t)slot].record_crc32 = loxboot_slot_record_crc32(&state.slots[(uint8_t)slot]);
+    state.active_slot = slot;
+    state.boot_reason = LOXBOOT_REASON_FORCED;
+    state.slots[slot].state = LOXBOOT_SLOT_STATE_ACTIVE;
+    state.slots[slot].record_crc32 = loxboot_slot_record_crc32(&state.slots[slot]);
 
     err = loxboot_state_write(ctx, &state);
     if (err != LOXBOOT_OK) {
@@ -356,18 +356,18 @@ static loxboot_err_t loxboot_run_rollback(loxboot_t *ctx, loxboot_slot_id_t acti
         return err;
     }
 
-    state.slots[(uint8_t)active_slot].state = (uint8_t)LOXBOOT_SLOT_STATE_ROLLBACK;
-    state.slots[(uint8_t)active_slot].record_crc32 = loxboot_slot_record_crc32(&state.slots[(uint8_t)active_slot]);
+    state.slots[active_slot].state = LOXBOOT_SLOT_STATE_ROLLBACK;
+    state.slots[active_slot].record_crc32 = loxboot_slot_record_crc32(&state.slots[active_slot]);
 
     loxboot_slot_id_t fallback_slot = (active_slot == LOXBOOT_SLOT_A) ? LOXBOOT_SLOT_B : LOXBOOT_SLOT_A;
-    if (state.slots[(uint8_t)fallback_slot].state != (uint8_t)LOXBOOT_SLOT_STATE_VALID) {
+    if (state.slots[fallback_slot].state != LOXBOOT_SLOT_STATE_VALID) {
         return LOXBOOT_ERR_NO_VALID_SLOT;
     }
 
-    state.active_slot = (uint8_t)fallback_slot;
-    state.boot_reason = (uint8_t)LOXBOOT_REASON_ROLLBACK;
-    state.slots[(uint8_t)fallback_slot].state = (uint8_t)LOXBOOT_SLOT_STATE_ACTIVE;
-    state.slots[(uint8_t)fallback_slot].record_crc32 = loxboot_slot_record_crc32(&state.slots[(uint8_t)fallback_slot]);
+    state.active_slot = fallback_slot;
+    state.boot_reason = LOXBOOT_REASON_ROLLBACK;
+    state.slots[fallback_slot].state = LOXBOOT_SLOT_STATE_ACTIVE;
+    state.slots[fallback_slot].record_crc32 = loxboot_slot_record_crc32(&state.slots[fallback_slot]);
 
     err = loxboot_state_write(ctx, &state);
     if (err != LOXBOOT_OK) {
@@ -433,15 +433,15 @@ loxboot_err_t loxboot_run(loxboot_t *ctx)
 boot_retry:
     loxboot_slot_id_t active_slot = (loxboot_slot_id_t)ctx->state.active_slot;
     if (!loxboot_slot_id_valid(active_slot) ||
-        ctx->state.slots[(uint8_t)active_slot].state == (uint8_t)LOXBOOT_SLOT_STATE_EMPTY ||
-        ctx->state.slots[(uint8_t)active_slot].state == (uint8_t)LOXBOOT_SLOT_STATE_INVALID) {
+        ctx->state.slots[active_slot].state == LOXBOOT_SLOT_STATE_EMPTY ||
+        ctx->state.slots[active_slot].state == LOXBOOT_SLOT_STATE_INVALID) {
 
         loxboot_slot_id_t fallback_slot = (active_slot == LOXBOOT_SLOT_A) ? LOXBOOT_SLOT_B : LOXBOOT_SLOT_A;
-        if (ctx->state.slots[(uint8_t)fallback_slot].state == (uint8_t)LOXBOOT_SLOT_STATE_VALID ||
-            ctx->state.slots[(uint8_t)fallback_slot].state == (uint8_t)LOXBOOT_SLOT_STATE_ACTIVE) {
-            ctx->state.slots[(uint8_t)fallback_slot].state = (uint8_t)LOXBOOT_SLOT_STATE_ACTIVE;
-            ctx->state.slots[(uint8_t)fallback_slot].record_crc32 = loxboot_slot_record_crc32(&ctx->state.slots[(uint8_t)fallback_slot]);
-            ctx->state.active_slot = (uint8_t)fallback_slot;
+        if (ctx->state.slots[fallback_slot].state == LOXBOOT_SLOT_STATE_VALID ||
+            ctx->state.slots[fallback_slot].state == LOXBOOT_SLOT_STATE_ACTIVE) {
+            ctx->state.slots[fallback_slot].state = LOXBOOT_SLOT_STATE_ACTIVE;
+            ctx->state.slots[fallback_slot].record_crc32 = loxboot_slot_record_crc32(&ctx->state.slots[fallback_slot]);
+            ctx->state.active_slot = fallback_slot;
 
             err = loxboot_state_write(ctx, &ctx->state);
             if (err != LOXBOOT_OK) {
@@ -464,7 +464,7 @@ boot_retry:
     }
 
     /* [3] Check crash loop */
-    if (ctx->state.slots[(uint8_t)active_slot].boot_attempts >= LOXBOOT_MAX_BOOT_ATTEMPTS) {
+    if (ctx->state.slots[active_slot].boot_attempts >= LOXBOOT_MAX_BOOT_ATTEMPTS) {
         err = loxboot_run_rollback(ctx, active_slot);
         if (err != LOXBOOT_OK) {
             ctx->hal.on_fatal(ctx->hal.ctx, err);
@@ -479,8 +479,8 @@ boot_retry:
     }
 
     /* [4] Increment boot_attempts and write state */
-    ctx->state.slots[(uint8_t)active_slot].boot_attempts++;
-    ctx->state.slots[(uint8_t)active_slot].record_crc32 = loxboot_slot_record_crc32(&ctx->state.slots[(uint8_t)active_slot]);
+    ctx->state.slots[active_slot].boot_attempts++;
+    ctx->state.slots[active_slot].record_crc32 = loxboot_slot_record_crc32(&ctx->state.slots[active_slot]);
 
     err = loxboot_state_write(ctx, &ctx->state);
     if (err != LOXBOOT_OK) {
@@ -493,10 +493,10 @@ boot_retry:
     }
 
     /* [5] Verify firmware CRC32 */
-    uint32_t firmware_size = ctx->state.slots[(uint8_t)active_slot].firmware_size;
+    uint32_t firmware_size = ctx->state.slots[active_slot].firmware_size;
     uint32_t slot_base = (active_slot == LOXBOOT_SLOT_A) ?
                          ctx->platform.slot_a_base : ctx->platform.slot_b_base;
-    uint32_t expected_crc = ctx->state.slots[(uint8_t)active_slot].firmware_crc32;
+    uint32_t expected_crc = ctx->state.slots[active_slot].firmware_crc32;
 
 #ifdef LOXBOOT_TEST_HOOKS
     uint8_t fw_buf[4096];
@@ -505,16 +505,16 @@ boot_retry:
     if (firmware_size > 0u && firmware_size <= sizeof(fw_buf)) {
         err = ctx->flash.read(ctx->flash.ctx, slot_base, fw_buf, firmware_size);
         if (err != LOXBOOT_OK) {
-            ctx->state.slots[(uint8_t)active_slot].state = (uint8_t)LOXBOOT_SLOT_STATE_INVALID;
-            ctx->state.slots[(uint8_t)active_slot].record_crc32 = loxboot_slot_record_crc32(&ctx->state.slots[(uint8_t)active_slot]);
+            ctx->state.slots[active_slot].state = LOXBOOT_SLOT_STATE_INVALID;
+            ctx->state.slots[active_slot].record_crc32 = loxboot_slot_record_crc32(&ctx->state.slots[active_slot]);
             err = loxboot_state_write(ctx, &ctx->state);
             (void)err;
             goto boot_retry;
         }
         computed_crc = loxboot_crc32(fw_buf, firmware_size);
     } else {
-        ctx->state.slots[(uint8_t)active_slot].state = (uint8_t)LOXBOOT_SLOT_STATE_INVALID;
-        ctx->state.slots[(uint8_t)active_slot].record_crc32 = loxboot_slot_record_crc32(&ctx->state.slots[(uint8_t)active_slot]);
+        ctx->state.slots[active_slot].state = LOXBOOT_SLOT_STATE_INVALID;
+        ctx->state.slots[active_slot].record_crc32 = loxboot_slot_record_crc32(&ctx->state.slots[active_slot]);
         err = loxboot_state_write(ctx, &ctx->state);
         (void)err;
         goto boot_retry;
@@ -525,8 +525,8 @@ boot_retry:
 #endif
 
     if (computed_crc != expected_crc) {
-        ctx->state.slots[(uint8_t)active_slot].state = (uint8_t)LOXBOOT_SLOT_STATE_INVALID;
-        ctx->state.slots[(uint8_t)active_slot].record_crc32 = loxboot_slot_record_crc32(&ctx->state.slots[(uint8_t)active_slot]);
+        ctx->state.slots[active_slot].state = LOXBOOT_SLOT_STATE_INVALID;
+        ctx->state.slots[active_slot].record_crc32 = loxboot_slot_record_crc32(&ctx->state.slots[active_slot]);
 
         err = loxboot_state_write(ctx, &ctx->state);
         (void)err;
@@ -535,9 +535,9 @@ boot_retry:
     }
 
     /* [6] Promote PENDING → ACTIVE if needed */
-    if (ctx->state.slots[(uint8_t)active_slot].state == (uint8_t)LOXBOOT_SLOT_STATE_PENDING) {
-        ctx->state.slots[(uint8_t)active_slot].state = (uint8_t)LOXBOOT_SLOT_STATE_ACTIVE;
-        ctx->state.slots[(uint8_t)active_slot].record_crc32 = loxboot_slot_record_crc32(&ctx->state.slots[(uint8_t)active_slot]);
+    if (ctx->state.slots[active_slot].state == LOXBOOT_SLOT_STATE_PENDING) {
+        ctx->state.slots[active_slot].state = LOXBOOT_SLOT_STATE_ACTIVE;
+        ctx->state.slots[active_slot].record_crc32 = loxboot_slot_record_crc32(&ctx->state.slots[active_slot]);
 
         err = loxboot_state_write(ctx, &ctx->state);
         if (err != LOXBOOT_OK) {
@@ -556,8 +556,8 @@ boot_retry:
     }
 
     /* [7] Record boot reason in state */
-    ctx->state.boot_reason = (uint8_t)ctx->boot_reason;
-    ctx->state.slots[(uint8_t)active_slot].record_crc32 = loxboot_slot_record_crc32(&ctx->state.slots[(uint8_t)active_slot]);
+    ctx->state.boot_reason = ctx->boot_reason;
+    ctx->state.slots[active_slot].record_crc32 = loxboot_slot_record_crc32(&ctx->state.slots[active_slot]);
 
     err = loxboot_state_write(ctx, &ctx->state);
     if (err != LOXBOOT_OK) {

@@ -20,12 +20,12 @@ static uint32_t loxboot_state_crc32(const loxboot_state_t *st)
     return loxboot_crc32((const uint8_t *)st, offsetof(loxboot_state_t, state_crc32));
 }
 
-static bool loxboot_slot_record_is_valid(const loxboot_slot_record_t *rec, uint8_t expected_slot_id)
+static bool loxboot_slot_record_is_valid(const loxboot_slot_record_t *rec, loxboot_slot_id_t expected_slot_id)
 {
     if (rec->magic != LOXBOOT_SLOT_MAGIC) {
         return false;
     }
-    if (rec->slot_id != expected_slot_id) {
+    if (rec->slot_id != (uint8_t)expected_slot_id) {
         return false;
     }
     if (!loxboot_slot_state_valid(rec->state)) {
@@ -52,10 +52,10 @@ static bool loxboot_state_is_valid(const loxboot_state_t *st)
         return false;
     }
 
-    if (!loxboot_slot_record_is_valid(&st->slots[0], (uint8_t)LOXBOOT_SLOT_A)) {
+    if (!loxboot_slot_record_is_valid(&st->slots[0], LOXBOOT_SLOT_A)) {
         return false;
     }
-    if (!loxboot_slot_record_is_valid(&st->slots[1], (uint8_t)LOXBOOT_SLOT_B)) {
+    if (!loxboot_slot_record_is_valid(&st->slots[1], LOXBOOT_SLOT_B)) {
         return false;
     }
     return true;
