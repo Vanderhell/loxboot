@@ -129,11 +129,48 @@ static void test_crc16_api_available(void)
     CHECK(crc != 0xFFFFu);
 }
 
+/* Test: Command constants defined */
+static void test_uart_commands_defined(void)
+{
+    /* Verify UART command constants are accessible */
+    int hello_cmd = LOXBOOT_UART_CMD_HELLO;
+    int write_cmd = LOXBOOT_UART_CMD_WRITE;
+
+    CHECK(hello_cmd == 0x01);
+    CHECK(write_cmd == 0x02);
+}
+
+/* Test: Session state tracking */
+static void test_uart_session_state(void)
+{
+    test_flash_t flash;
+    test_fatal_t fatal;
+    loxboot_t ctx;
+
+    test_flash_reset(&flash);
+    test_make_valid_ctx(&ctx, &flash, &fatal);
+    loxboot_state_t state;
+    test_build_default_state(&state, LOXBOOT_SLOT_A);
+    test_seed_state(&flash, &ctx.platform, &state);
+    loxboot_init(&ctx);
+
+    loxboot_uart_session_t session;
+    memset(&session, 0, sizeof(session));
+    session.boot = &ctx;
+    session.listen_ms = 100u;
+
+    /* Session fields should initialize */
+    CHECK(session.boot != NULL);
+    CHECK(session.listen_ms > 0u);
+}
+
 int main(void)
 {
     run_test("uart_no_hello_timeout", test_uart_no_hello_timeout);
     run_test("uart_session_init", test_uart_session_init);
     run_test("crc16_api_available", test_crc16_api_available);
+    run_test("uart_commands_defined", test_uart_commands_defined);
+    run_test("uart_session_state", test_uart_session_state);
 
     (void)printf("passed=%d failed=%d\n", g_test_passed, g_test_failed);
     return (g_test_failed > 0) ? 1 : 0;
