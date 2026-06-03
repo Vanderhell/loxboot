@@ -32,7 +32,7 @@ extern "C" {
  * ====================================================================== */
 
 #define LOXBOOT_VERSION_MAJOR 0
-#define LOXBOOT_VERSION_MINOR 2
+#define LOXBOOT_VERSION_MINOR 6
 #define LOXBOOT_VERSION_PATCH 0
 
 /* =========================================================================

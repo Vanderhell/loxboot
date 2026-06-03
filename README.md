@@ -1,6 +1,6 @@
 # loxboot — Bootloader Core
 
-Minimal, platform-agnostic bootloader for bare-metal MCUs (ARM Cortex-M, Xtensa, RISC-V).
+Minimal, adapter-based bootloader core for bare-metal MCUs. Production-ready for **ARM Cortex-M** (STM32, others). Partial support for Xtensa and RISC-V (adapters implemented; jump mechanism ARM-only).
 
 **Latest release:** v0.6.0-esp32
 
@@ -140,13 +140,13 @@ ctest --test-dir build -C Debug --output-on-failure
 - **v0.3.0 boot sequence (3 tests):** loxboot_run, rollback, crash loop
 - **v0.4.0 UART (2 tests):** Frame protocol, session handling
 
-**Tested on:**
-- MSVC 2019+ with `/W4 /WX`
-- Clang-cl with `-Wall -Wextra -Werror`
-- GCC with `-Wall -Wextra -Wpedantic -Werror`
-- Clang with `-Wall -Wextra -Wpedantic -Werror`
+**Tested in CI (4-target matrix):**
+- Ubuntu GCC with `-Wall -Wextra -Wpedantic -Werror`
+- Ubuntu Clang with `-Wall -Wextra -Wpedantic -Werror`
+- Windows MSVC with `/W4 /WX`
+- Windows Clang-cl with `-Wall -Wextra -Werror`
 
-Hardware adapters (STM32, ESP32) verified on actual hardware.
+**Note:** CI tests core + UART (13 tests). Hardware adapters (STM32, ESP32) are **not** tested in CI because they require vendor HAL headers (stm32_hal.h, esp_partition.h). Each adapter must be verified on physical hardware with the target platform's HAL/IDF.
 
 ---
 
@@ -160,7 +160,7 @@ loxboot_err_t loxboot_run(loxboot_t *ctx);  /* Never returns on success */
 
 ### Slot Control
 ```c
-loxboot_err_t loxboot_commit_slot(loxboot_t *ctx, loxboot_slot_id_t slot, uint32_t firmware_crc32, uint32_t firmware_size);
+loxboot_err_t loxboot_commit_slot(loxboot_t *ctx, loxboot_slot_id_t slot, uint32_t firmware_size, uint32_t firmware_crc32);
 loxboot_err_t loxboot_invalidate_slot(loxboot_t *ctx, loxboot_slot_id_t slot);
 loxboot_err_t loxboot_request_slot(loxboot_t *ctx, loxboot_slot_id_t slot);
 loxboot_err_t loxboot_confirm_boot(loxboot_t *ctx);
@@ -169,21 +169,22 @@ loxboot_err_t loxboot_confirm_boot(loxboot_t *ctx);
 ### State Access
 ```c
 loxboot_err_t loxboot_state_read(loxboot_t *ctx, loxboot_state_t *out_state);
-loxboot_err_t loxboot_slot_state(loxboot_t *ctx, loxboot_slot_id_t slot, uint8_t *out_state);
+loxboot_err_t loxboot_get_slot_state(loxboot_t *ctx, loxboot_slot_id_t slot, loxboot_slot_state_t *out_state);
+loxboot_boot_reason_t loxboot_get_boot_reason(const loxboot_t *ctx);
 ```
 
 ### Error Codes
 ```c
 LOXBOOT_OK                  = 0
 LOXBOOT_ERR_INVALID_ARG     = 1
-LOXBOOT_ERR_INVALID_STATE   = 2
-LOXBOOT_ERR_FLASH_READ      = 3
-LOXBOOT_ERR_FLASH_WRITE     = 4
-LOXBOOT_ERR_FLASH_ERASE     = 5
-LOXBOOT_ERR_CRC_MISMATCH    = 6
-LOXBOOT_ERR_NO_VALID_SLOT   = 7
-LOXBOOT_ERR_TIMEOUT         = 8
-LOXBOOT_ERR_TRANSPORT       = 9
+LOXBOOT_ERR_FLASH_READ      = 2
+LOXBOOT_ERR_FLASH_WRITE     = 3
+LOXBOOT_ERR_FLASH_ERASE     = 4
+LOXBOOT_ERR_CRC_MISMATCH    = 5
+LOXBOOT_ERR_NO_VALID_SLOT   = 6
+LOXBOOT_ERR_TIMEOUT         = 7
+LOXBOOT_ERR_TRANSPORT       = 8
+LOXBOOT_ERR_INVALID_STATE   = 9
 LOXBOOT_ERR_RECORD_CORRUPT  = 10
 ```
 
