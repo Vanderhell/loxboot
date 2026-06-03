@@ -31,9 +31,7 @@ extern "C" {
  * Version
  * ====================================================================== */
 
-#define LOXBOOT_VERSION_MAJOR 0
-#define LOXBOOT_VERSION_MINOR 6
-#define LOXBOOT_VERSION_PATCH 0
+#include "loxboot_version.h"
 
 /* =========================================================================
  * Compile-time configuration
