@@ -6,9 +6,22 @@ Minimal, adapter-based bootloader core for bare-metal MCUs. Production-ready for
 
 ---
 
+## Status: Prototype/Reference Implementation
+
+**⚠️ NOT PRODUCTION READY** for full system. This is a **bootloader core** suitable for:
+- Reference implementation and education
+- Foundation for vendor-specific adaptations
+- ARM Cortex-M systems (fully working)
+
+Known limitations requiring vendor customization before deployment:
+- **Jump/boot mechanism**: ARM Cortex-M only (Xtensa/RISC-V need platform-specific code)
+- **CRC16**: Non-standard implementation (fails known-vector tests)
+- **UART tests**: Lightweight (does not validate full update flow)
+- **Platform adapters**: Require hardware validation (CI cannot test STM32/ESP32 without vendor HAL)
+
 ## Overview
 
-loxboot is a **C99, zero-heap bootloader core** that handles:
+loxboot is a **C99, zero-heap bootloader core** that provides:
 
 - **Boot state management:** Dual-copy read/write with CRC32 corruption recovery
 - **Slot control:** Firmware A/B with metadata (commit, invalidate, request, confirm)
