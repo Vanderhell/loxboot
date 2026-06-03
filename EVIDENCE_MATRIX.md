@@ -60,7 +60,7 @@
 | STM32 flash adapter | `adapters/stm32/loxboot_flash_stm32.c` + header | Build (arm-none-eabi-gcc -Wall -Wextra -Wpedantic -Werror) | IMPLEMENTED | Hardware-only verification; requires STM32 HAL headers and actual hardware |
 | STM32 flash adapter hardware test | Hardware | n/a | NOT VERIFIED | Hardware-only |
 | **v0.6.0-esp32** | | | | |
-| ESP32 flash adapter | `adapters/esp32/loxboot_flash_esp32.c` | n/a | NOT IMPLEMENTED | v0.6.0 |
+| ESP32 flash adapter | `adapters/esp32/loxboot_flash_esp32.c` + header | Build (xtensa-esp32-elf-gcc -Wall -Wextra) | IMPLEMENTED | Hardware-only verification; requires ESP-IDF and actual ESP32 hardware |
 | ESP32 flash adapter hardware test | Hardware | n/a | NOT VERIFIED | Hardware-only |
 | **Never (out of scope)** | | | | |
 | Secure boot / firmware signing | n/a | n/a | OUT OF SCOPE | Not planned |

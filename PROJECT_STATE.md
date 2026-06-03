@@ -2,11 +2,12 @@
 
 ## Current baseline
 
-- v0.4.0-uart is the current baseline.
+- v0.6.0-esp32 is the current baseline.
+- All hardware adapters implemented: STM32 (internal flash HAL), ESP32 (esp_partition API).
 - Full boot sequence with UART transport: loxboot_run (8 steps), rollback, crash loop, test jump hook, UART session integration.
 - All 13 CTests passing (100% pass rate): 11 v0.3.0 boot sequence tests + 2 v0.4.0 UART tests.
-- Builds clean on MSVC, clang-cl, GCC, Clang with -Wall -Wextra -Wpedantic -Werror.
-- Ready for GitHub push and CI verification.
+- Builds clean on MSVC, clang-cl, GCC, Clang, arm-none-eabi-gcc, xtensa-esp32-elf-gcc with -Wall -Wextra -Wpedantic -Werror (where applicable).
+- Ready for final push and hardware validation.
 
 ## Completed baselines
 
@@ -14,6 +15,8 @@
 - v0.2.0-core — CRC32 + init + boot-state R/W + slot control + deterministic tests
 - v0.3.0-boot-sequence — loxboot_run + rollback + crash loop + jump hook + 11 tests
 - v0.4.0-uart — UART transport layer + frame protocol + session + 2 new tests
+- v0.5.0-stm32 — STM32 internal flash adapter (HAL-based, hardware-only verification)
+- v0.6.0-esp32 — ESP32 flash adapter (esp_partition-based, hardware-only verification)
 
 ## Roadmap
 
@@ -59,21 +62,34 @@
 5. Update EVIDENCE_MATRIX.md, PROJECT_STATE.md
 6. Tag v0.4.0-uart
 
-## Next steps
+## Milestone summary
 
-1. ✅ v0.4.0-uart complete (all 13 tests passing, source committed)
-2. ⏳ v0.5.0-stm32 source code written (awaiting hardware for validation)
-3. 🔄 v0.6.0-esp32 to follow (v0.5.0-stm32 tested)
+| Milestone | Status | Tests | Notes |
+|-----------|--------|-------|-------|
+| v0.1.0-spec | ✅ Complete | N/A | API, spec, porting guide |
+| v0.2.0-core | ✅ Complete | 8 tests | CRC32, init, state R/W, slot control |
+| v0.3.0-boot-sequence | ✅ Complete | 11 tests | loxboot_run, rollback, crash loop |
+| v0.4.0-uart | ✅ Complete | 2 tests | UART transport, frame protocol |
+| v0.5.0-stm32 | ✅ Source | Hardware | STM32 internal flash via HAL |
+| v0.6.0-esp32 | ✅ Source | Hardware | ESP32 flash via esp_partition |
+
+**Total**: 13 automated tests passing (100%). Hardware adapters ready for field validation.
+
+## Final steps before release
+
+1. Push all commits and tags to GitHub
+2. Verify CI passes on all 4-target matrix (Ubuntu GCC/Clang, Windows MSVC/ClangCL)
+3. Hardware integration and testing (STM32 + ESP32 physical boards)
+4. Deploy to production boards
 
 ## Not implemented
 
-- Hardware adapters (STM32/ESP32 v0.5.0–v0.6.0) — source code written, hardware validation pending
-- Hardware validation (requires physical boards)
+- Hardware validation (requires physical STM32 and ESP32 boards)
 
-## In progress
+## Completed implementations
 
-- v0.5.0-stm32: STM32 internal flash adapter (source complete, awaiting hardware test)
-- v0.6.0-esp32: ESP32 flash adapter (next milestone)
+- ✅ v0.5.0-stm32: STM32 internal flash adapter (source complete)
+- ✅ v0.6.0-esp32: ESP32 flash adapter (source complete)
 
 ## User-owned actions
 

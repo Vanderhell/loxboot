@@ -217,6 +217,94 @@ You must:
 
 ---
 
+## ESP32 flash adapter (v0.6.0+)
+
+loxboot includes a ready-made adapter for ESP32 internal flash using the ESP-IDF esp_partition API.
+
+### Setup
+
+1. **Include the adapter header:**
+   ```c
+   #include "loxboot_flash_esp32.h"
+   ```
+
+2. **Find the target partition:**
+   Use `esp_partition_find_first()` to locate the partition that will hold loxboot state and firmware:
+   ```c
+   #include "esp_partition.h"
+   #include "loxboot_flash_esp32.h"
+
+   const esp_partition_t *partition = esp_partition_find_first(
+       ESP_PARTITION_TYPE_DATA,
+       ESP_PARTITION_SUBTYPE_DATA_OTA,
+       "boot_app"  /* Partition label — configure in partitions.csv */
+   );
+   if (partition == NULL) {
+       /* Partition not found — check partitions.csv */
+       return;
+   }
+   ```
+
+3. **Initialize the adapter in your bootloader:**
+   ```c
+   void app_main(void) {
+       /* Initialize loxboot context */
+       loxboot_t ctx = {0};
+       loxboot_esp32_flash_ctx_t flash_ctx = {0};
+
+       /* Find partition and initialize flash adapter */
+       flash_ctx.partition = esp_partition_find_first(
+           ESP_PARTITION_TYPE_DATA,
+           ESP_PARTITION_SUBTYPE_DATA_OTA,
+           "boot_app");
+       if (flash_ctx.partition == NULL) {
+           ESP_LOGE(TAG, "Boot partition not found");
+           return;
+       }
+
+       loxboot_esp32_flash_adapter_init(&ctx.flash, &flash_ctx);
+
+       /* Set remaining context fields (clock, hal, transport, platform) */
+       ctx.clock.now_ms = my_clock_now_ms;
+       ctx.hal.on_fatal = my_fatal;
+       /* ... */
+
+       /* Initialize and run */
+       loxboot_init(&ctx);
+       loxboot_run(&ctx);  /* Never returns on success */
+   }
+   ```
+
+### How the adapter works
+
+- **read**: Direct call to `esp_partition_read(partition, addr, buf, len)`
+- **write**: Direct call to `esp_partition_write(partition, addr, buf, len)`
+  Each call handles alignment and caching internally.
+  Returns `LOXBOOT_ERR_FLASH_WRITE` if any operation fails.
+- **erase**: Direct call to `esp_partition_erase_range(partition, addr, len)`
+  Must be sector-aligned (typically 4KB on ESP32).
+
+### Partition configuration
+
+Edit `partitions.csv` to define regions for boot state and firmware slots:
+
+```
+# Name,     Type,  SubType, Offset,   Size,      Flags
+nvs,        data,  nvs,     0x9000,   0x6000,    
+otadata,    data,  ota,     0xf000,   0x2000,    
+boot_app,   data,  ota,     0x11000,  0x100000,  
+```
+
+The partition named `boot_app` will be mounted at offset `0x11000` with size `0x100000` (1 MB).
+Set `loxboot_platform_t` fields accordingly (in terms of offset within the partition, from 0).
+
+### Hardware verification
+
+The adapter is compiled with `-Wall -Wextra` on xtensa-esp32-elf-gcc.
+Test the adapter on actual ESP32 hardware before deployment.
+
+---
+
 ## Flash adapter rules
 
 1. `read` must work for any byte-aligned address and length within slot or boot state region.
