@@ -13,17 +13,17 @@
 
 ## Host (Automated Testing) ✅
 
-**Status:** Production-ready for testing  
-**Tests:** 365/365 passing  
-**Compiler:** MSVC, GCC, Clang (all zero warnings)
+**Status:** Hardened bootloader core for testing  
+**Tests:** 363/363 passing (362 core + 1 flush validation)  
+**Compiler:** MSVC verified zero warnings; GCC/Clang flags configured
 
 **Coverage:**
 - Boot sequence: 17 tests
 - State management: 132 tests (corruption recovery)
-- UART protocol: 77 tests (frame + session)
+- UART protocol: 77 tests (frame + session + flush validation)
 - Slot operations: 25 tests
 - Init/CRC: 37 tests
-- Adapters: 3 tests
+- UART session boundary: 75 tests
 
 ## ARM Cortex-M ⚠️
 
@@ -189,12 +189,12 @@ idf.py build
 
 | Target | Build Status | Notes |
 |--------|--------------|-------|
-| Host (MSVC) | ✅ | 365 tests passing |
-| Host (GCC) | ✅ | 365 tests passing |
-| Host (Clang) | ✅ | 365 tests passing |
-| STM32 stub | ✅ | With stm32_hal.h stub |
+| Host (MSVC) | ✅ | 363 tests passing, zero warnings |
+| Host (GCC) | ✅ | Core-only cross-compile verified |
+| Host (Clang) | ✅ | Flags configured, not verified on Windows |
+| STM32 stub | ⚠️ | Fixed int-to-pointer cast, needs stub headers |
 | ESP32 stub | ✅ | With esp_partition.h stub |
-| STM32 real | ⏳ | Awaits user STM32 + HAL |
+| STM32 real | ⏳ | Awaits user STM32 + real HAL |
 | ESP32 real | ⏳ | Awaits user ESP32 + IDF |
 
 ## Recommendations

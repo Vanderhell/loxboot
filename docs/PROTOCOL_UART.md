@@ -17,7 +17,7 @@ Bytes n+1, n+2: CRC16-CCITT (16-bit little-endian)
 ### CRC16-CCITT
 - Polynomial: 0x1021
 - Initial value: 0xFFFF
-- Final XOR: 0xFFFF
+- Final XOR: 0x0000 (no final XOR)
 - Covers: bytes 1 through n (CMD + LEN + PAYLOAD)
 
 ## Commands
@@ -44,7 +44,7 @@ Bytes 4..n: Firmware data chunk
 - Requires `_session_active == true` (HELLO sent first)
 - `offset + len(chunk) <= slot_size`
 - Updates `_bytes_written = offset + len(chunk)`
-- Flash must be pre-erased (session erases on init)
+- Target slot is erased on first WRITE (not at session init)
 
 **Response:** RSP_OK or RSP_ERROR
 

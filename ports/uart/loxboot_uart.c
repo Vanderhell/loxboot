@@ -190,7 +190,7 @@ loxboot_err_t loxboot_uart_run_session(loxboot_uart_session_t *session)
 
     loxboot_t *ctx = session->boot;
 
-    if (ctx->transport.read_byte == NULL || ctx->transport.write_byte == NULL) {
+    if (ctx->transport.read_byte == NULL || ctx->transport.write_byte == NULL || ctx->transport.flush == NULL) {
         return LOXBOOT_ERR_INVALID_ARG;
     }
     if (ctx->clock.now_ms == NULL) {

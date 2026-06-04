@@ -25,10 +25,10 @@ extern "C" {
  * loxboot_uart_session_t — Context for one UART update session.
  *
  * Caller fills all fields before passing to loxboot_uart_run_session().
+ * Transport is accessed via session->boot->transport (not session->transport).
  */
 typedef struct {
     loxboot_t                   *boot;          /**< loxboot core context (required) */
-    loxboot_transport_adapter_t  transport;     /**< Transport adapter (required) */
     uint32_t                     listen_ms;     /**< How long to wait for CMD_HELLO */
 
     /* Internal state — zero-init, do not fill */

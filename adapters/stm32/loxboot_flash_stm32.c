@@ -16,7 +16,7 @@ static loxboot_err_t stm32_flash_read(void *ctx, uint32_t addr, uint8_t *buf, si
     }
 
     /* Internal flash is memory-mapped — direct pointer read */
-    const uint8_t *src = (const uint8_t *)addr;
+    const uint8_t *src = (const uint8_t *)(uintptr_t)addr;
     memcpy(buf, src, len);
     return LOXBOOT_OK;
 }

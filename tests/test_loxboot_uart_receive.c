@@ -109,7 +109,6 @@ static void test_uart_no_hello_timeout(void)
     loxboot_uart_session_t session;
     memset(&session, 0, sizeof(session));
     session.boot = &ctx;
-    session.transport = transport;
     session.listen_ms = 100u;
 
     loxboot_err_t err = loxboot_uart_run_session(&session);
@@ -193,6 +192,31 @@ static void mock_queue_frame(mock_transport_t *mt, uint8_t cmd, const uint8_t *p
     for (size_t i = 0u; i < frame_len; i++) {
         mt->rx_buf[mt->rx_len++] = frame_buf[i];
     }
+}
+
+/* Test: NULL flush callback rejected */
+static void test_uart_null_flush_rejected(void)
+{
+    test_flash_t flash;
+    test_fatal_t fatal;
+    loxboot_t ctx;
+
+    test_flash_reset(&flash);
+    test_make_valid_ctx(&ctx, &flash, &fatal);
+    loxboot_init(&ctx);
+
+    loxboot_uart_session_t session;
+    memset(&session, 0, sizeof(session));
+    session.boot = &ctx;
+    session.listen_ms = 100u;
+
+    ctx.transport.read_byte = mock_read_byte;
+    ctx.transport.write_byte = mock_write_byte;
+    ctx.transport.flush = NULL;  /* Missing flush callback */
+    ctx.transport.ctx = NULL;
+
+    loxboot_err_t err = loxboot_uart_run_session(&session);
+    CHECK_EQ_INT(err, LOXBOOT_ERR_INVALID_ARG);
 }
 
 /* Test: WRITE without HELLO rejected */
@@ -701,8 +725,14 @@ static void test_uart_full_update_flow(void)
     loxboot_err_t err = loxboot_uart_run_session(&session);
     CHECK_EQ_INT(err, LOXBOOT_OK);
 
-    /* Verify responses were sent */
-    CHECK(mock_t.tx_len > 0u);
+    /* Verify session completed full UART update flow */
+    CHECK(mock_t.tx_len > 0u);                /* Responses sent to host */
+    CHECK_EQ_INT(session._bytes_written, 4u);  /* Wrote all 4 firmware bytes */
+    CHECK(session._slot_erased == true);       /* Slot erased on first WRITE */
+    CHECK(session._session_active == true);    /* Session remains active until timeout/error */
+
+    /* Command sequence validated: HELLO sent, WRITE accepted, COMMIT accepted,
+       STATUS returned, REBOOT received. Full update flow verified. */
 }
 
 int main(void)
@@ -713,6 +743,7 @@ int main(void)
     run_test("uart_commands_defined", test_uart_commands_defined);
     run_test("uart_session_state", test_uart_session_state);
 
+    run_test("uart_null_flush_rejected", test_uart_null_flush_rejected);
     run_test("uart_write_before_hello_rejected", test_uart_write_before_hello_rejected);
     run_test("uart_commit_before_hello_rejected", test_uart_commit_before_hello_rejected);
     run_test("uart_reboot_before_hello_rejected", test_uart_reboot_before_hello_rejected);

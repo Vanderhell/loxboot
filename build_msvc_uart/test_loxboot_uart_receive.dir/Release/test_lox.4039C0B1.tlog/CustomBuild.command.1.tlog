@@ -1,0 +1,10 @@
+^C:\USERS\VANDE\DESKTOP\LOXBOOT\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/vande/Desktop/loxboot -BC:/Users/vande/Desktop/loxboot/build_msvc_uart --check-stamp-file C:/Users/vande/Desktop/loxboot/build_msvc_uart/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

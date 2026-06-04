@@ -1,0 +1,10 @@
+^C:\USERS\VANDE\DESKTOP\LOXBOOT\BUILD_MSVC_UART\CMAKEFILES\FB56404605ABD5965AB0E393410A14B1\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/vande/Desktop/loxboot -BC:/Users/vande/Desktop/loxboot/build_msvc_uart --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/vande/Desktop/loxboot/build_msvc_uart/loxboot.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

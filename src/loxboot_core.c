@@ -399,7 +399,6 @@ loxboot_err_t loxboot_run(loxboot_t *ctx)
         loxboot_uart_session_t uart_session;
         memset(&uart_session, 0, sizeof(uart_session));
         uart_session.boot = ctx;
-        uart_session.transport = ctx->transport;
         uart_session.listen_ms = (uint32_t)LOXBOOT_UART_LISTEN_MS;
 
         err = loxboot_uart_run_session(&uart_session);
