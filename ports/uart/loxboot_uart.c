@@ -200,7 +200,8 @@ loxboot_err_t loxboot_uart_run_session(loxboot_uart_session_t *session)
     uint32_t listen_start = ctx->clock.now_ms(ctx->clock.ctx);
     uint32_t listen_timeout = (session->listen_ms > 0u) ? session->listen_ms : LOXBOOT_UART_LISTEN_MS;
 
-    uint8_t payload_buf[LOXBOOT_UART_MAX_FRAME_PAYLOAD];
+    /* static: bootloader is single-threaded; avoids 1KB stack allocation on every call */
+    static uint8_t payload_buf[LOXBOOT_UART_MAX_FRAME_PAYLOAD];
     loxboot_err_t err = LOXBOOT_OK;
 
     loxboot_state_t state;
