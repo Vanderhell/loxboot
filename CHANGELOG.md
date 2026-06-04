@@ -17,6 +17,10 @@ All notable changes to loxboot are documented in this file.
   - Impact: Prevents fallback firmware destruction during passive boot
 - **CMake UART integration:** Added LOXBOOT_BUILD_UART_PORT compile definition
   - Impact: UART session code now executes when flag is ON
+- **Adapter header includes:** Fixed incorrect #include paths in adapter stubs
+  - Impact: Build no longer fails on missing headers
+- **Uninitialized variable:** Initialize huge_payload array in tests
+  - Impact: Eliminates GCC warning on uninitialized local array
 
 ### Features
 - **Incremental CRC32 API:** Added init/update/finalize for streaming verification

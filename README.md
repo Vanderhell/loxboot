@@ -154,11 +154,15 @@ ctest --test-dir build -C Debug --output-on-failure
 
 ## Test Coverage
 
-**13 automated tests (100% passing):**
+**362 automated tests (100% passing):**
 
-- **v0.2.0 core (8 tests):** CRC32, init, state R/W, slot control
-- **v0.3.0 boot sequence (3 tests):** loxboot_run, rollback, crash loop
-- **v0.4.0 UART (2 tests):** Frame protocol, session handling
+- **Boot sequence (17 tests):** loxboot_run, rollback, crash loop, recovery
+- **State management (132 tests):** R/W, dual-copy, corruption recovery
+- **UART frame (43 tests):** encode/decode, CRC16, payload validation
+- **UART session (34 tests):** gating, bounds, errors, full update flow
+- **Slot operations (25 tests):** commit, invalidate, request, confirm
+- **Init/CRC/rollback (37 tests):** initialization, CRC32, state validation
+- **Misc (74 tests):** integration and edge cases
 
 **Tested in CI (5-target matrix):**
 - Ubuntu GCC with `-Wall -Wextra -Wpedantic -Werror`

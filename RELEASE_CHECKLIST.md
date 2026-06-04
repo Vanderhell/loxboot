@@ -2,9 +2,10 @@
 
 ## Code Quality ✅
 - [x] 362 automated tests passing (100% pass rate)
-- [x] Zero compiler warnings (MSVC /W4 /WX, GCC -Wall -Wextra -Wpedantic -Werror)
+- [x] Zero MSVC warnings (/W4 /WX verified on Windows)
+- [x] GCC/Clang flags configured (-Wall -Wextra -Wpedantic -Werror, CMakeLists.txt:115)
 - [x] C99 only, no external dependencies
-- [x] Critical bugs fixed: frame validation, session gating, erase timing
+- [x] 8 critical bugs fixed: frame validation, session gating, erase timing, NULL checks, adapter headers, uninitialized variables
 
 ## UART Protocol ✅
 - [x] Frame encode/decode with CRC16-CCITT
