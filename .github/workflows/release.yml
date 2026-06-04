@@ -96,10 +96,10 @@ jobs:
         run: ctest --test-dir build -C Release --output-on-failure
 
   # -------------------------------------------------------------------------
-  # Package: build source archive + header-only bundle after gate passes
+  # Package (Linux): source archive + header bundle
   # -------------------------------------------------------------------------
-  package:
-    name: Package release artifacts
+  package-linux:
+    name: Package source + headers
     runs-on: ubuntu-latest
     needs: gate
 
@@ -140,30 +140,74 @@ jobs:
           cp LICENSE README.md CHANGELOG.md KNOWN_ISSUES.md "${BUNDLE}/"
           tar -czf "${BUNDLE}.tar.gz" "${BUNDLE}"
 
-      - name: Generate SHA256 checksums
-        run: |
-          VERSION="${{ steps.ver.outputs.version }}"
-          sha256sum \
-            "loxboot-${VERSION}.tar.gz" \
-            "loxboot-${VERSION}-headers.tar.gz" \
-            > "loxboot-${VERSION}-SHA256SUMS.txt"
-          cat "loxboot-${VERSION}-SHA256SUMS.txt"
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: release-${{ steps.ver.outputs.version }}
-          path: |
-            loxboot-*.tar.gz
-            loxboot-*-SHA256SUMS.txt
+          name: pkg-linux-${{ steps.ver.outputs.version }}
+          path: loxboot-*.tar.gz
 
   # -------------------------------------------------------------------------
-  # Publish: create GitHub Release with changelog excerpt and artifacts
+  # Package (Windows): pre-built MSVC static library
+  # -------------------------------------------------------------------------
+  package-windows:
+    name: Package Windows MSVC lib
+    runs-on: windows-latest
+    needs: gate
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: ver
+        shell: bash
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure
+        run: |
+          cmake -B build `
+            -DCMAKE_C_FLAGS="/W4 /WX" `
+            -DLOXBOOT_BUILD_TESTS=OFF `
+            -DLOXBOOT_BUILD_UART_PORT=ON `
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Assemble bundle
+        shell: bash
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          BUNDLE="loxboot-${VERSION}-windows-msvc"
+          mkdir -p "${BUNDLE}/lib" "${BUNDLE}/include/loxboot"
+
+          cp build/Release/loxboot.lib   "${BUNDLE}/lib/"
+          cp include/loxboot/*.h         "${BUNDLE}/include/loxboot/"
+          cp LICENSE README.md CHANGELOG.md KNOWN_ISSUES.md "${BUNDLE}/"
+
+          cat > "${BUNDLE}/USAGE.txt" <<'EOF'
+          loxboot Windows MSVC static library
+          ====================================
+          Link: loxboot.lib
+          Include path: include/
+          Standard: C99 (/std:c11 or /std:c99)
+          No runtime dependencies — zero-heap, no CRT heap functions used.
+          EOF
+
+          7z a "${BUNDLE}.zip" "${BUNDLE}/"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkg-windows-${{ steps.ver.outputs.version }}
+          path: loxboot-*-windows-msvc.zip
+
+  # -------------------------------------------------------------------------
+  # Publish: collect all artifacts, generate checksums, create GitHub Release
   # -------------------------------------------------------------------------
   publish:
     name: Publish GitHub Release
     runs-on: ubuntu-latest
-    needs: package
+    needs: [package-linux, package-windows]
 
     steps:
       - uses: actions/checkout@v4
@@ -172,19 +216,29 @@ jobs:
         id: ver
         run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Download artifacts
+      - name: Download Linux artifacts
         uses: actions/download-artifact@v4
         with:
-          name: release-${{ steps.ver.outputs.version }}
+          name: pkg-linux-${{ steps.ver.outputs.version }}
+          path: dist/
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: pkg-windows-${{ steps.ver.outputs.version }}
+          path: dist/
+
+      - name: Generate SHA256 checksums
+        run: |
+          cd dist
+          sha256sum * > "loxboot-${{ steps.ver.outputs.version }}-SHA256SUMS.txt"
+          cat "loxboot-${{ steps.ver.outputs.version }}-SHA256SUMS.txt"
 
       - name: Extract changelog section
-        id: notes
         run: |
           VERSION="${{ steps.ver.outputs.version }}"
-          # Extract section between this version header and the next one
           awk "/^## \[v${VERSION}\]/{found=1; next} /^## \[/{if(found) exit} found" \
             CHANGELOG.md > release_notes.md
-          echo "notes_file=release_notes.md" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -194,5 +248,6 @@ jobs:
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
           files: |
-            loxboot-*.tar.gz
-            loxboot-*-SHA256SUMS.txt
+            dist/loxboot-*.tar.gz
+            dist/loxboot-*-windows-msvc.zip
+            dist/loxboot-*-SHA256SUMS.txt
