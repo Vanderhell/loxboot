@@ -13,7 +13,7 @@ Minimal, adapter-based bootloader core for bare-metal MCUs. Host-tested referenc
 - Foundation for vendor-specific platform adaptations
 - Development and testing of boot firmware infrastructure
 
-**Host core** (port-agnostic) is verified: 362 automated tests passing (100% pass rate), zero compiler warnings (MSVC/GCC/Clang).
+**Host core** (port-agnostic) is verified: 366 automated tests passing (100% pass rate), zero MSVC warnings.
 
 **Platform adapters** (STM32, ESP32) require hardening:
 - Flash erase granularity model (sector vs. byte erase)
