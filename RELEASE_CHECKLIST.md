@@ -1,7 +1,7 @@
-# v0.6.0 Hardening Status
+# v0.7.0 Status
 
 ## Code Quality ✅
-- [x] 366 automated tests passing (100% pass rate)
+- [x] 371 automated tests passing (100% pass rate, 14 CTests)
 - [x] Zero MSVC warnings (/W4 /WX verified on Windows)
 - [x] GCC/Clang flags configured (-Wall -Wextra -Wpedantic -Werror, CMakeLists.txt:115)
 - [x] C99 only, no external dependencies
@@ -42,11 +42,24 @@
 - [x] LOXBOOT_BUILD_UART_PORT properly wired in CMake
 
 ## Documentation ✅
-- [x] README: Corrected (removed "production-ready" claim)
-- [x] API headers: frame_encode/decode in public API
-- [x] RELEASE_CHECKLIST.md: Updated with actual status
-- [x] docs/PROTOCOL_UART.md: Complete specification
+- [x] README: Version accurate, no false production claims
+- [x] API headers: frame_encode/decode, loxboot_format_state() in public API
+- [x] CHANGELOG.md: v0.7.0 entry complete
+- [x] KNOWN_ISSUES.md: All blockers documented
+- [x] docs/PROTOCOL_UART.md: CRC16 and erase timing corrected
 - [x] docs/PLATFORM_STATUS.md: Per-platform guidance
+- [x] docs/TEST_PLAN.md: E2E test status updated
+
+## New in v0.7.0 ✅
+- [x] loxboot_format_state() public provisioning API
+- [x] Fresh flash auto-recovery in loxboot_run()
+- [x] E2E simulator (tools/loxboot_sim.c) in CTest
+- [x] Python E2E test suite: 34/34 pass
+- [x] Hardware E2E on ESP32-S3: 12/12 pass
+- [x] ESP32-S3 IDF project (idf_project/)
+- [x] Release workflow with Windows MSVC .lib artifact
+- [x] Usage examples (examples/)
+- [x] STM32 + ESP32 erase granularity both fixed
 
 ## Known Limitations ⚠️
 - Slot erase granularity: Core assumes flash can erase arbitrary sizes

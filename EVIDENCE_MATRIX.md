@@ -1,4 +1,4 @@
-# Evidence Matrix — v0.6.0 Hardening Verification
+# Evidence Matrix — v0.7.0 Verification
 
 ## Overview
 This matrix tracks which critical requirements have automated test evidence, code implementation, and documentation backing.
@@ -78,10 +78,11 @@ This matrix tracks which critical requirements have automated test evidence, cod
 | Boot sequence | 17 | 100% | test_loxboot_boot_sequence.exe |
 | State management | 132 | 100% | test_loxboot_state_edges.exe |
 | UART frame | 43 | 100% | test_loxboot_uart_frame.exe |
-| UART session | 38 | 100% | test_loxboot_uart_receive.exe |
+| UART session | 43 | 100% | test_loxboot_uart_receive.exe |
 | Slot operations | 25 | 100% | test_loxboot_invalidate_slot.exe + others |
 | Init/CRC/rollback | 37 | 100% | test_loxboot_init.exe + others |
-| **TOTAL** | **366** | **100%** | All passing |
+| E2E (simulator) | 34 | 100% | tools/test_e2e.py (CTest: loxboot_e2e) |
+| **CTest total** | **14/14** | **100%** | 371 assertions, 0 failures |
 
 ---
 
@@ -128,7 +129,7 @@ This matrix tracks which critical requirements have automated test evidence, cod
 
 ## Verdict
 
-**Code Quality:** ✅ 366 automated tests, 100% pass rate  
+**Code Quality:** ✅ 371 automated tests, 14 CTests, 100% pass rate  
 **Build Quality:** ✅ MSVC verified, GCC/Clang flags configured  
 **Documentation:** ✅ Specification and integration guides complete  
 **Safety:** ✅ Critical bugs fixed, session state gated  
