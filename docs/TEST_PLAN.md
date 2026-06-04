@@ -54,12 +54,19 @@
   - Boot count cannot exceed threshold without rollback
 - **Status**: Core validation in src/loxboot_core.c; extended test suite pending
 
-### Full UART Update Flow
-- **Purpose**: HELLO → WRITE (multiple chunks) → COMMIT → REBOOT → Boot pending → Confirm
-- **Negative cases**: Frame without SOF, short frame, bad CRC, payload_len > max, WRITE before HELLO, COMMIT before WRITE
+### UART Transfer + Commit (E2E scope)
+- **Covered**: HELLO → WRITE (multi-chunk) → COMMIT → REBOOT, slot B = PENDING, firmware bytes in flash, CRC32 verified
+- **Negative cases**: Bad CRC, WRITE before HELLO, COMMIT before WRITE, size mismatch, OOB write, NULL flush
 - **Status**: IMPLEMENTED — two layers:
   1. `test_loxboot_uart_receive.c::test_uart_full_update_flow` — C unit test with real CRC32, verifies slot B PENDING + firmware bytes in flash
-  2. `tools/test_e2e.py` — Python E2E test with loxboot_sim subprocess; 34/34 assertions pass
+  2. `tools/test_e2e.py` — Python E2E test with loxboot_sim subprocess; 34/34 assertions pass (CTest: `loxboot_e2e`)
+
+**Scope boundary**: E2E tests end at REBOOT + slot PENDING. The next phase — boot selection of PENDING slot, CRC verify, jump, confirm_boot(), VALID — is covered independently by `test_loxboot_boot_sequence.c` and `test_loxboot_rollback.c`. These are deliberately separate: the UART transport layer and the boot sequence are orthogonal concerns.
+
+### Boot Promotion Cycle
+- **Covered**: PENDING → boot → attempt counter → CRC verify → jump → confirm_boot() → VALID → rollback on bad CRC
+- **Status**: IMPLEMENTED in `test_loxboot_boot_sequence.c`, `test_loxboot_rollback.c`, `test_loxboot_crash_loop.c`
+- **NOT covered end-to-end**: Combined flow (UART write → boot → confirm) in one test. This requires hardware or a more complex simulator with jump hooks chained to a second session. Tracked in KNOWN_ISSUES.md.
 
 ## Test Execution
 

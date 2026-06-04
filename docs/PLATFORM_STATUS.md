@@ -57,76 +57,70 @@
 
 ## STM32 (Internal Flash) ⚠️
 
-**Status:** Adapter code complete, needs validation  
+**Status:** Adapter code present. Verified to compile with vendor-provided stub headers. **Not hardware-validated.**  
 **Adapter:** `adapters/stm32/loxboot_flash_stm32.c`
 
-**What works (in theory):**
-- Flash read (memory-mapped)
-- Flash write (8-byte chunks via HAL)
-- Flash erase (page-aligned sectors)
+**What the adapter implements:**
+- Flash read via memory-mapped direct pointer
+- Flash write in 8-byte chunks via `HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD)`
+- Flash erase rounded up to `FLASH_PAGE_SIZE` boundary
 
-**What needs testing:**
-- Real STM32 HAL integration (`stm32_hal.h` header)
-- Flash page size assumptions
-- Flash dual-bank behavior (if applicable)
-- Erase granularity with boot state (52 bytes → sector align)
-- Write timing (program/erase cycles)
+**⚠️ Critical layout requirement:**
+Each boot state copy (primary + backup) **must occupy its own erase page/sector exclusively**.
+The adapter rounds erase requests up to `FLASH_PAGE_SIZE`. If `boot_state_primary_base` shares a page with application code, firmware, config, or any other data, that data **will be erased** when loxboot updates boot state.
 
-**Known issues:**
-- State erase assumes sector granularity (STM32 enforces)
-- Page size varies by STM32 variant
-- Dual-bank models may need special handling
+Minimum safe layout example (assuming 2KB pages):
+```
+0x08004000 — boot state primary  (one full 2KB page, nothing else)
+0x08004800 — boot state backup   (one full 2KB page, nothing else)
+0x08005000 — [application or slot A start]
+```
 
-**Next steps:**
-1. Provide real `stm32_hal.h` (user's HAL)
-2. Configure `FLASH_PAGE_SIZE` for target STM32
-3. Test flash operations with real memory
-4. Verify boot state backup copies work
-5. Run power-loss scenarios
+**What requires real hardware:**
+- STM32 HAL headers (`stm32_hal.h` must be provided by user)
+- `FLASH_PAGE_SIZE` varies by STM32 variant (512B / 1KB / 2KB / 16KB / 128KB)
+- Dual-bank models need special `Banks` field configuration
+- Write timing and program cycle verification
+- Power-loss scenarios
 
-**Build:**
+**Build (requires vendor HAL):**
 ```bash
-cmake -DLOXBOOT_BUILD_STM32_ADAPTER=ON -DSTM32_HAL_PATH=/path/to/hal ..
-cmake --build . --config Release
+cmake -DLOXBOOT_BUILD_STM32_ADAPTER=ON ..
+# stm32_hal.h and stm32_hal.c must be in your include path
 ```
 
 ## ESP32 (esp_partition API) ⚠️
 
-**Status:** Adapter code complete, needs validation  
+**Status:** Adapter code present. IDF project (`idf_project/`) builds and runs on ESP32-S3 DevKit. UART protocol verified on hardware (12/12 E2E assertions). **Full boot cycle (jump to app) not tested.**  
 **Adapter:** `adapters/esp32/loxboot_flash_esp32.c`
 
-**What works (in theory):**
-- Partition discovery via esp_partition_find_first()
-- Flash read via esp_partition_read()
-- Flash write via esp_partition_write()
-- Flash erase via esp_partition_erase_range()
+**Verified on hardware (ESP32-S3, IDF v5.5.1):**
+- UART protocol: HELLO/WRITE/COMMIT/REBOOT/STATUS/ABORT — all correct
+- Boot state write to `loxstate`/`loxbkup` partitions
+- slot B = PENDING after COMMIT
+- Device survives REBOOT and responds to next listen window
 
-**What needs testing:**
-- Real ESP32 partition table (`partitions.csv`)
-- esp_partition API on actual IDF version
-- Sector alignment (typically 4KB)
-- Read-only vs. read-write partitions
+**⚠️ Critical layout requirement:**
+Each boot state partition (`loxstate`, `loxbkup`) must be an independent partition. The adapter rounds erase requests up to 4096 bytes (one flash sector). If the partition is smaller or shares an erase block, data loss will occur.
+
+Minimum safe partition sizes:
+```csv
+loxstate,   data, 0x40,  0x10000,  0x1000,   # 4KB minimum
+loxbkup,    data, 0x41,  0x11000,  0x1000,   # 4KB minimum
+```
+
+**Not yet verified:**
+- `loxboot_run()` jump to Xtensa application (ARM Cortex-M vector table style, not valid on Xtensa)
+- Power-loss scenarios
 - OTA partition compatibility
-- Power-loss during partition operations
+- Flash write verify (esp_partition_read after write)
 
-**Known issues:**
-- Assumes partition handle is stable
-- No built-in recovery if partition moves
-- Write assumes pre-erase (adapter enforces)
-
-**Next steps:**
-1. Create partitions.csv with slots A/B
-2. Flash loxboot + partitions to ESP32
-3. Test esp_partition API calls
-4. Verify boot state copies persist
-5. Run OTA update cycle
-
-**Build:**
+**Build (requires ESP-IDF):**
 ```bash
-# In ESP-IDF project
-idf.py add_component /path/to/loxboot
-cmake -DLOXBOOT_BUILD_ESP32_ADAPTER=ON ..
+cd idf_project
+idf.py set-target esp32s3
 idf.py build
+idf.py -p COM19 flash
 ```
 
 ## Xtensa (ESP8266) ❌

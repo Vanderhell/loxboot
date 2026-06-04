@@ -309,27 +309,52 @@ Test the adapter on actual ESP32 hardware before deployment.
 
 1. `read` must work for any byte-aligned address and length within slot or boot state region.
 2. `write` assumes the target region is already erased (0xFF). loxboot does not erase before writing firmware — the transport layer is responsible for erasing before writing.
-3. `erase` must accept any address/length within platform regions. If the platform requires sector alignment, the adapter is responsible for rounding up.
+3. `erase` must accept any address/length within platform regions. The adapter is responsible for rounding up to sector/page boundaries. loxboot may pass sub-sector sizes (e.g. 60 bytes for boot state). The caller guarantees that the memory layout places boot state copies in isolated sectors so the rounding is safe.
 4. All three must be synchronous (blocking). loxboot has no async model.
 5. Return exact `loxboot_err_t` codes — do not map all errors to `LOXBOOT_ERR_FLASH_READ`.
 
 ---
 
-## Boot state region sizing
+## Boot state region sizing and isolation
 
-The boot state region must be large enough for two copies of `loxboot_state_t`:
+**Rule: each boot state copy must occupy its own erase sector exclusively.**
 
-```c
-/* Minimum boot state region per copy */
-size_t min_size = sizeof(loxboot_state_t);  /* typically ~60 bytes */
+loxboot calls `flash.erase(addr, sizeof(loxboot_state_t))` — approximately 60 bytes.
+The adapter must round this up to the platform's erase granularity.
+This means the erase will cover an entire sector, erasing everything in it.
 
-/* Total flash reserved for boot state */
-size_t total = min_size * 2;  /* primary + backup */
+**Any data that shares a sector with a boot state copy will be destroyed on every boot state update.**
+
+This includes: application code, slot firmware, configuration, NVS, or any other data.
+
+```
+CORRECT layout (STM32, 2KB pages):
+  0x08004000 — boot_state_primary  [2KB page, nothing else]
+  0x08004800 — boot_state_backup   [2KB page, nothing else]
+  0x08005000 — slot A or app start
+
+WRONG layout (data corruption):
+  0x08004000 — boot_state_primary  [shares page with config at 0x08004100]
+  ^^ CONFIG AT 0x08004100 WILL BE ERASED WHEN BOOT STATE IS UPDATED ^^
 ```
 
-On flash with large sector sizes (e.g. STM32F4 with 16KB sectors), one sector per
-copy is typical even though `loxboot_state_t` is much smaller than 16KB.
-The extra space is wasted but unavoidable due to erase granularity.
+For platforms with large sectors (STM32F4: 16KB / 128KB sectors), allocate one full sector per boot state copy. The wasted space is unavoidable.
+
+For ESP32, use dedicated partitions (4KB minimum, one per copy):
+```csv
+loxstate, data, 0x40,  0x10000, 0x1000,
+loxbkup,  data, 0x41,  0x11000, 0x1000,
+```
+
+**Minimum sizes by platform:**
+
+| Platform | Sector size | Minimum per copy |
+|----------|-------------|------------------|
+| STM32F1/F3 | 1–2 KB | 1 sector (1–2 KB) |
+| STM32F4 | 16 KB (small) / 128 KB (large) | 1 sector |
+| STM32L4/G4 | 2–4 KB | 1 sector |
+| ESP32 | 4 KB | 1 sector (4 KB) |
+| ESP32-S3 | 4 KB | 1 sector (4 KB) |
 
 ---
 
