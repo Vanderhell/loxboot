@@ -384,6 +384,15 @@ loxboot_err_t loxboot_run(loxboot_t *ctx)
 
     /* [1] Read and validate boot state (dual-copy) */
     loxboot_err_t err = loxboot_state_read(ctx, &ctx->state);
+    if (err == LOXBOOT_ERR_RECORD_CORRUPT) {
+        /* Fresh flash or total corruption — initialize blank state and retry */
+        loxboot_state_t fresh;
+        loxboot_state_make_default(&fresh, LOXBOOT_SLOT_A);
+        err = loxboot_state_write(ctx, &fresh);
+        if (err == LOXBOOT_OK) {
+            err = loxboot_state_read(ctx, &ctx->state);
+        }
+    }
     if (err != LOXBOOT_OK) {
         ctx->hal.on_fatal(ctx->hal.ctx, err);
 #ifdef LOXBOOT_TEST_HOOKS

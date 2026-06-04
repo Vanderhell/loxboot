@@ -6,8 +6,12 @@
 
 #include "loxboot/loxboot.h"
 
-/* Forward declaration — user provides via ESP-IDF esp_partition.h */
+/* Include real esp_partition.h when building under IDF, otherwise forward-declare */
+#ifdef ESP_PLATFORM
+#include "esp_partition.h"
+#else
 typedef struct esp_partition_t esp_partition_t;
+#endif
 
 /* ESP32 flash adapter context */
 typedef struct {

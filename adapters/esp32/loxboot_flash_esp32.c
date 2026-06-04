@@ -39,7 +39,10 @@ static loxboot_err_t esp32_flash_write(void *ctx, uint32_t addr, const uint8_t *
     return LOXBOOT_OK;
 }
 
-/* ESP32 flash — erase via esp_partition API */
+/* ESP32 flash sector size — erase_range requires 4KB alignment */
+#define ESP32_SECTOR_SIZE 4096u
+
+/* ESP32 flash — erase via esp_partition API (rounded up to sector boundary) */
 static loxboot_err_t esp32_flash_erase(void *ctx, uint32_t addr, size_t len)
 {
     loxboot_esp32_flash_ctx_t *esp_ctx = (loxboot_esp32_flash_ctx_t *)ctx;
@@ -48,7 +51,12 @@ static loxboot_err_t esp32_flash_erase(void *ctx, uint32_t addr, size_t len)
         return LOXBOOT_ERR_FLASH_ERASE;
     }
 
-    esp_err_t status = esp_partition_erase_range(esp_ctx->partition, addr, len);
+    /* Round addr down and len up to sector boundaries */
+    uint32_t aligned_addr = (addr / ESP32_SECTOR_SIZE) * ESP32_SECTOR_SIZE;
+    size_t   offset_adj   = addr - aligned_addr;
+    size_t   aligned_len  = ((len + offset_adj + ESP32_SECTOR_SIZE - 1u) / ESP32_SECTOR_SIZE) * ESP32_SECTOR_SIZE;
+
+    esp_err_t status = esp_partition_erase_range(esp_ctx->partition, aligned_addr, aligned_len);
     if (status != ESP_OK) {
         return LOXBOOT_ERR_FLASH_ERASE;
     }
