@@ -1,0 +1,198 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]*'
+
+permissions:
+  contents: write
+
+jobs:
+  # -------------------------------------------------------------------------
+  # Gate: all 5 CI targets must pass before release artifacts are built
+  # -------------------------------------------------------------------------
+  gate:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: Ubuntu GCC
+            os: ubuntu-latest
+            compiler: gcc
+          - name: Ubuntu Clang
+            os: ubuntu-latest
+            compiler: clang
+          - name: Ubuntu ARM cross-compile
+            os: ubuntu-latest
+            compiler: gcc-arm
+          - name: Windows MSVC
+            os: windows-latest
+            compiler: msvc
+          - name: Windows ClangCL
+            os: windows-latest
+            compiler: clang-cl
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ARM cross-compiler
+        if: matrix.compiler == 'gcc-arm'
+        run: sudo apt-get update && sudo apt-get install -y gcc-arm-none-eabi
+
+      - name: Configure (Ubuntu GCC)
+        if: matrix.compiler == 'gcc'
+        run: |
+          cmake -B build \
+            -DCMAKE_C_COMPILER=gcc \
+            -DCMAKE_C_FLAGS="-Wall -Wextra -Wpedantic -Werror" \
+            -DLOXBOOT_BUILD_TESTS=ON \
+            -DLOXBOOT_BUILD_UART_PORT=ON \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Configure (Ubuntu Clang)
+        if: matrix.compiler == 'clang'
+        run: |
+          cmake -B build \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_C_FLAGS="-Wall -Wextra -Wpedantic -Werror" \
+            -DLOXBOOT_BUILD_TESTS=ON \
+            -DLOXBOOT_BUILD_UART_PORT=ON \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Configure (ARM cross-compile)
+        if: matrix.compiler == 'gcc-arm'
+        run: |
+          cmake -B build \
+            -DCMAKE_TOOLCHAIN_FILE="$(pwd)/cmake/toolchain-arm-none-eabi.cmake" \
+            -DLOXBOOT_BUILD_TESTS=OFF \
+            -DLOXBOOT_BUILD_UART_PORT=OFF \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Configure (Windows MSVC)
+        if: matrix.compiler == 'msvc'
+        run: |
+          cmake -B build `
+            -DCMAKE_C_FLAGS="/W4 /WX" `
+            -DLOXBOOT_BUILD_TESTS=ON `
+            -DLOXBOOT_BUILD_UART_PORT=ON
+
+      - name: Configure (Windows ClangCL)
+        if: matrix.compiler == 'clang-cl'
+        run: |
+          cmake -B build `
+            -T ClangCL `
+            -DCMAKE_C_FLAGS="-Wall -Wextra -Werror" `
+            -DLOXBOOT_BUILD_TESTS=ON `
+            -DLOXBOOT_BUILD_UART_PORT=ON
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Test
+        if: matrix.compiler != 'gcc-arm'
+        run: ctest --test-dir build -C Release --output-on-failure
+
+  # -------------------------------------------------------------------------
+  # Package: build source archive + header-only bundle after gate passes
+  # -------------------------------------------------------------------------
+  package:
+    name: Package release artifacts
+    runs-on: ubuntu-latest
+    needs: gate
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify tag matches loxboot_version.h
+        run: |
+          TAG_VER="${{ steps.ver.outputs.version }}"
+          HDR_VER=$(grep 'LOXBOOT_VERSION_STRING' include/loxboot/loxboot_version.h \
+                    | grep -oP '"[^"]+"' | tr -d '"')
+          if [ "$TAG_VER" != "$HDR_VER" ]; then
+            echo "ERROR: tag $TAG_VER != loxboot_version.h $HDR_VER"
+            exit 1
+          fi
+          echo "Version verified: $TAG_VER"
+
+      - name: Build source archive
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          git archive --format=tar.gz \
+            --prefix="loxboot-${VERSION}/" \
+            -o "loxboot-${VERSION}.tar.gz" \
+            HEAD
+
+      - name: Build header-only bundle
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          BUNDLE="loxboot-${VERSION}-headers"
+          mkdir -p "${BUNDLE}/loxboot"
+          cp include/loxboot/*.h "${BUNDLE}/loxboot/"
+          cp LICENSE README.md CHANGELOG.md KNOWN_ISSUES.md "${BUNDLE}/"
+          tar -czf "${BUNDLE}.tar.gz" "${BUNDLE}"
+
+      - name: Generate SHA256 checksums
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          sha256sum \
+            "loxboot-${VERSION}.tar.gz" \
+            "loxboot-${VERSION}-headers.tar.gz" \
+            > "loxboot-${VERSION}-SHA256SUMS.txt"
+          cat "loxboot-${VERSION}-SHA256SUMS.txt"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ steps.ver.outputs.version }}
+          path: |
+            loxboot-*.tar.gz
+            loxboot-*-SHA256SUMS.txt
+
+  # -------------------------------------------------------------------------
+  # Publish: create GitHub Release with changelog excerpt and artifacts
+  # -------------------------------------------------------------------------
+  publish:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs: package
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-${{ steps.ver.outputs.version }}
+
+      - name: Extract changelog section
+        id: notes
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          # Extract section between this version header and the next one
+          awk "/^## \[v${VERSION}\]/{found=1; next} /^## \[/{if(found) exit} found" \
+            CHANGELOG.md > release_notes.md
+          echo "notes_file=release_notes.md" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: loxboot v${{ steps.ver.outputs.version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: |
+            loxboot-*.tar.gz
+            loxboot-*-SHA256SUMS.txt
