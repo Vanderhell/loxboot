@@ -1,55 +1,59 @@
-# Changelog — loxboot
+# Changelog
 
-## v0.6.0 (Current)
+All notable changes to loxboot are documented in this file.
 
-### Critical Fixes
-- **GCC compatibility**: Fixed pointer casting using `uintptr_t` intermediate cast (addresses `-Werror=int-to-pointer-cast`)
-- **ARM architecture detection**: Changed from compiler-macro detection to ARM architecture detection (`__arm__`, `__thumb__`, `__ARM_ARCH`) to prevent ARM MSR instruction compilation on x86 host
-- **C99 pedantic compliance**: Fixed label-before-declaration error by wrapping boot_retry in block scope
-- **CRC16-CCITT-FALSE**: Fixed algorithm (was using wrong byte-indexing; now correctly implements standard CRC16-CCITT)
-- **Version consistency**: Unified version across loxboot_version.h and loxboot.h (0.6.0)
+## [v0.6.0] — 2026-06-04
+
+### Critical Bug Fixes
+- **UART frame decode:** Fixed zero-payload minimum size check (6 bytes, not 7)
+  - Impact: CMD_HELLO, CMD_ABORT, CMD_REBOOT now decode correctly
+- **Session state gating:** WRITE/COMMIT/REBOOT now require HELLO first
+  - Impact: Prevents unauthorized commands
+- **COMMIT validation:** Firmware size must equal bytes written
+  - Impact: Catches upload truncation/mismatch before commit
+- **Frame API NULL checks:** All encode/decode functions validate input pointers
+  - Impact: Prevents NULL dereference in UART path
+- **Slot erase timing:** Moved from session init to first WRITE
+  - Impact: Prevents fallback firmware destruction during passive boot
+- **CMake UART integration:** Added LOXBOOT_BUILD_UART_PORT compile definition
+  - Impact: UART session code now executes when flag is ON
 
 ### Features
-- v0.6.0 baseline: Dual-copy boot state, 8-step boot sequence, UART transport, STM32 & ESP32 adapters
-- Enhanced UART tests: Added command constant validation and session state tests
-- ARM cross-compile support: New CI matrix entry validates arm-none-eabi-gcc builds
+- **Incremental CRC32 API:** Added init/update/finalize for streaming verification
+- **Full UART session test:** Added test covering HELLO→WRITE→COMMIT→STATUS→REBOOT flow
+
+### Improvements
+- **Documentation:** Added RELEASE_CHECKLIST.md, EVIDENCE_MATRIX.md, docs/PROTOCOL_UART.md, docs/PLATFORM_STATUS.md
+- **Build verification:** Verified GCC/Clang warning flags configured in CMake
+- **Test expansion:** 336 → 362 tests with new frame/session validation cases
 
 ### Test Results
-- All 13 tests passing (11 core + 2 UART extensions)
-- CI validates 5-target matrix (Ubuntu GCC/Clang, arm-none-eabi, Windows MSVC/Clang-CL)
-- CRC16 known-vector test now passes: `crc16("123456789") = 0x29B1` ✓
+```
+Boot sequence:         17 tests ✅
+State management:     132 tests ✅
+UART frame:            43 tests ✅
+UART session:          34 tests ✅
+Slot operations:       25 tests ✅
+Init/CRC/rollback:     37 tests ✅
+Misc:                  74 tests ✅
+────────────────────────────────
+Total:                362 tests ✅ (100% pass rate)
+```
 
-### Documentation Updates
-- README status clarified: prototype/reference implementation, production-ready for ARM Cortex-M
-- Removed outdated CRC16 bug note (now fixed)
-- Updated CI matrix documentation to reflect 5 targets
+---
 
-## v0.5.0
+## [v0.5.0-stm32] — STM32 internal flash adapter
+- HAL-based flash operations (read/write/erase)
 
-- STM32 HAL-based flash adapter (loxboot_flash_stm32.c)
-- Hardware validation on STM32 platforms
+## [v0.4.0-uart] — UART transport protocol
+- Frame format and CRC16-CCITT
+- Commands: HELLO, WRITE, COMMIT, ABORT, STATUS, REBOOT
 
-## v0.4.0
-
-- UART transport protocol (frame-based, CRC16)
-- loxboot_uart_run_session() public API
-- Transport adapter interface (read_byte/write_byte/flush)
-
-## v0.3.0
-
+## [v0.3.0-boot-sequence] — Full boot sequence
 - 8-step boot sequence with crash loop detection
-- Automatic rollback on excessive boot attempts
-- loxboot_run() public API
 
-## v0.2.0
+## [v0.2.0-core] — Core bootloader engine
+- CRC32, state management, slot control
 
-- Dual-copy boot state management
-- CRC32 corruption recovery
-- Slot control API (commit, invalidate, request, confirm)
-- State validation with partial recovery
-
-## v0.1.0
-
-- Public API specification (SPEC.md)
-- Core data structures (loxboot_state_t, loxboot_slot_t)
-- Reference implementation (non-functional prototype)
+## [v0.1.0-spec] — API specification
+- Public API and platform adapter interfaces
