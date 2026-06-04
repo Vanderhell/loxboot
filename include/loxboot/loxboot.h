@@ -406,6 +406,40 @@ loxboot_err_t loxboot_request_slot(loxboot_t *ctx, loxboot_slot_id_t slot);
  */
 uint32_t loxboot_crc32(const uint8_t *data, size_t len);
 
+/**
+ * loxboot_crc32_init — Initialize CRC32 state for incremental computation.
+ *
+ * Returns the initial CRC32 state for use with loxboot_crc32_update().
+ * Use when computing CRC over data received in chunks.
+ */
+uint32_t loxboot_crc32_init(void);
+
+/**
+ * loxboot_crc32_update — Update CRC32 with data chunk.
+ *
+ * Continues CRC32 computation from previous state.
+ * Call loxboot_crc32_init() once, then call this repeatedly with chunks.
+ * Call loxboot_crc32_finalize() to get the final CRC.
+ *
+ * crc: current CRC state (from loxboot_crc32_init or previous call)
+ * data: pointer to data chunk (must not be NULL if len > 0)
+ * len: number of bytes in chunk
+ *
+ * Returns: updated CRC state
+ */
+uint32_t loxboot_crc32_update(uint32_t crc, const uint8_t *data, size_t len);
+
+/**
+ * loxboot_crc32_finalize — Finalize CRC32 computation.
+ *
+ * Completes the CRC32 calculation after all chunks have been processed.
+ *
+ * crc: final CRC state from loxboot_crc32_update calls
+ *
+ * Returns: final CRC32 value
+ */
+uint32_t loxboot_crc32_finalize(uint32_t crc);
+
 /* =========================================================================
  * Test hooks (only available when LOXBOOT_TEST_HOOKS=1)
  * ====================================================================== */

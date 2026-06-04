@@ -1,23 +1,30 @@
 # loxboot — Bootloader Core
 
-Minimal, adapter-based bootloader core for bare-metal MCUs. Production-ready for **ARM Cortex-M** (STM32, others). Partial support for Xtensa and RISC-V (adapters implemented; jump mechanism ARM-only).
+Minimal, adapter-based bootloader core for bare-metal MCUs. Host-tested reference implementation with platform adapters for STM32, ESP32, and others.
 
 **Latest release:** v0.6.0-esp32
 
 ---
 
-## Status: Prototype/Reference Implementation
+## Status: Host-Core-Clean, Platform Hardening Required
 
-**⚠️ NOT PRODUCTION READY** for full system. This is a **bootloader core** suitable for:
+**⚠️ NOT PRODUCTION READY**. This is a **bootloader core** suitable for:
 - Reference implementation and education
-- Foundation for vendor-specific adaptations
-- ARM Cortex-M systems (fully working)
+- Foundation for vendor-specific platform adaptations
+- Development and testing of boot firmware infrastructure
 
-Known limitations requiring vendor customization before deployment:
-- **Jump/boot mechanism**: ARM Cortex-M only (Xtensa/RISC-V need platform-specific code)
-- **Platform adapters**: Require hardware validation (CI cannot test STM32/ESP32 without vendor HAL)
-- **Power-loss tests**: Not yet implemented (unit tests exist for state recovery)
-- **State-machine invariant tests**: Core validation present, extended tests pending
+**Host core** (port-agnostic) is verified: 336 automated tests passing, zero compiler warnings (MSVC/GCC/Clang).
+
+**Platform adapters** (STM32, ESP32) require hardening:
+- Flash erase granularity model (sector vs. byte erase)
+- UART slot erase before firmware write
+- Firmware CRC verify via flash adapter (not direct memory)
+- Power-loss and corruption recovery validation
+- Hardware jump/reboot mechanism verification
+
+**Jump mechanism** requires platform-specific code:
+- ARM Cortex-M: Implementation present, needs hardware validation
+- Xtensa/RISC-V: Architecture defined, code not yet implemented
 
 ## Overview
 

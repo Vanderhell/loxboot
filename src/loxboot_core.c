@@ -494,31 +494,29 @@ boot_retry:
                          ctx->platform.slot_a_base : ctx->platform.slot_b_base;
     uint32_t expected_crc = ctx->state.slots[active_slot].firmware_crc32;
 
-#ifdef LOXBOOT_TEST_HOOKS
     uint8_t fw_buf[4096];
-    uint32_t computed_crc = 0u;
+    uint32_t computed_crc = loxboot_crc32_init();
 
-    if (firmware_size > 0u && firmware_size <= sizeof(fw_buf)) {
-        err = ctx->flash.read(ctx->flash.ctx, slot_base, fw_buf, firmware_size);
-        if (err != LOXBOOT_OK) {
-            ctx->state.slots[active_slot].state = LOXBOOT_SLOT_STATE_INVALID;
-            ctx->state.slots[active_slot].record_crc32 = loxboot_slot_record_crc32(&ctx->state.slots[active_slot]);
-            err = loxboot_state_write(ctx, &ctx->state);
-            (void)err;
-            goto boot_retry;
+    if (firmware_size > 0u) {
+        uint32_t remaining = firmware_size;
+        uint32_t offset = 0u;
+
+        while (remaining > 0u) {
+            size_t chunk_size = (remaining > sizeof(fw_buf)) ? sizeof(fw_buf) : (size_t)remaining;
+            err = ctx->flash.read(ctx->flash.ctx, slot_base + offset, fw_buf, chunk_size);
+            if (err != LOXBOOT_OK) {
+                ctx->state.slots[active_slot].state = LOXBOOT_SLOT_STATE_INVALID;
+                ctx->state.slots[active_slot].record_crc32 = loxboot_slot_record_crc32(&ctx->state.slots[active_slot]);
+                err = loxboot_state_write(ctx, &ctx->state);
+                (void)err;
+                goto boot_retry;
+            }
+            computed_crc = loxboot_crc32_update(computed_crc, fw_buf, chunk_size);
+            offset += (uint32_t)chunk_size;
+            remaining -= (uint32_t)chunk_size;
         }
-        computed_crc = loxboot_crc32(fw_buf, firmware_size);
-    } else {
-        ctx->state.slots[active_slot].state = LOXBOOT_SLOT_STATE_INVALID;
-        ctx->state.slots[active_slot].record_crc32 = loxboot_slot_record_crc32(&ctx->state.slots[active_slot]);
-        err = loxboot_state_write(ctx, &ctx->state);
-        (void)err;
-        goto boot_retry;
+        computed_crc = loxboot_crc32_finalize(computed_crc);
     }
-#else
-    uint8_t *fw_buf = (uint8_t *)(uintptr_t)slot_base;
-    uint32_t computed_crc = loxboot_crc32(fw_buf, firmware_size);
-#endif
 
     if (computed_crc != expected_crc) {
         ctx->state.slots[active_slot].state = LOXBOOT_SLOT_STATE_INVALID;

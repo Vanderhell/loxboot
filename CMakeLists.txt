@@ -155,6 +155,11 @@ if(LOXBOOT_BUILD_TESTS)
         )
     endif()
 
+    # Adapter tests
+    list(APPEND LOXBOOT_TEST_FILES
+        tests/test_adapters.c
+    )
+
     foreach(test_file IN LISTS LOXBOOT_TEST_FILES)
         if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${test_file}")
             get_filename_component(test_name "${test_file}" NAME_WE)

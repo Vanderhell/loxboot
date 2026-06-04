@@ -2,6 +2,7 @@
 #include <stddef.h>
 
 #include "loxboot/loxboot.h"
+#include "loxboot_flash_esp32.h"
 #include "esp_partition.h"
 
 /* ESP32 flash — read via esp_partition API */

@@ -8,7 +8,7 @@
 
 #include "loxboot/loxboot.h"
 
-#define TEST_FLASH_SIZE (64u * 1024u)
+#define TEST_FLASH_SIZE (128u * 1024u)
 
 typedef struct {
     uint8_t mem[TEST_FLASH_SIZE];

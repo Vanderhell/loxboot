@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "loxboot/loxboot.h"
+#include "loxboot_flash_stm32.h"
 #include "stm32_hal.h"
 
 /* STM32 internal flash — memory-mapped read */

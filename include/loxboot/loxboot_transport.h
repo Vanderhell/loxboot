@@ -94,6 +94,49 @@ loxboot_err_t loxboot_uart_send_status(loxboot_uart_session_t *session);
  */
 uint16_t loxboot_crc16(const uint8_t *data, size_t len);
 
+/**
+ * loxboot_uart_frame_encode — Encode a command frame.
+ *
+ * Encodes: SOF | CMD | LEN_LO | LEN_HI | PAYLOAD | CRC_LO | CRC_HI
+ *
+ * Parameters:
+ *   cmd         — command byte (LOXBOOT_UART_CMD_*)
+ *   payload     — payload data (may be NULL if payload_len == 0)
+ *   payload_len — payload length (≤ LOXBOOT_UART_MAX_FRAME_PAYLOAD)
+ *   out         — output frame buffer (must not be NULL)
+ *   out_len     — on input: buffer size; on output: encoded frame size
+ *
+ * Returns: LOXBOOT_OK on success, LOXBOOT_ERR_INVALID_ARG on validation failure.
+ */
+loxboot_err_t loxboot_uart_frame_encode(
+    uint8_t cmd,
+    const uint8_t *payload,
+    uint16_t payload_len,
+    uint8_t *out,
+    size_t *out_len);
+
+/**
+ * loxboot_uart_frame_decode — Decode a command frame.
+ *
+ * Validates SOF, payload length, and CRC16.
+ *
+ * Parameters:
+ *   in              — frame buffer (must not be NULL)
+ *   in_len          — frame size
+ *   cmd_out         — decoded command (must not be NULL)
+ *   payload_out     — decoded payload buffer (must not be NULL if payload_len > 0)
+ *   payload_len_out — decoded payload length (must not be NULL)
+ *
+ * Returns: LOXBOOT_OK on success, LOXBOOT_ERR_TRANSPORT on frame error,
+ *          LOXBOOT_ERR_INVALID_ARG on validation failure.
+ */
+loxboot_err_t loxboot_uart_frame_decode(
+    const uint8_t *in,
+    size_t in_len,
+    uint8_t *cmd_out,
+    uint8_t *payload_out,
+    uint16_t *payload_len_out);
+
 #ifdef __cplusplus
 }
 #endif
