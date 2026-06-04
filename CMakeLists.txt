@@ -178,4 +178,24 @@ if(LOXBOOT_BUILD_TESTS)
             add_test(NAME ${test_name} COMMAND ${test_name})
         endif()
     endforeach()
+
+    # -----------------------------------------------------------------------
+    # UART device simulator — used by tools/test_e2e.py for E2E testing
+    # -----------------------------------------------------------------------
+    if(LOXBOOT_BUILD_UART_PORT)
+        add_executable(loxboot_sim
+            tools/loxboot_sim.c
+            tests/test_support.c
+        )
+        target_link_libraries(loxboot_sim PRIVATE loxboot)
+        target_include_directories(loxboot_sim PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests
+        )
+        target_compile_definitions(loxboot_sim PRIVATE ${LOXBOOT_TEST_DEFS})
+        if(MSVC)
+            target_compile_options(loxboot_sim PRIVATE /W4 /WX)
+        else()
+            target_compile_options(loxboot_sim PRIVATE -Wall -Wextra -Wpedantic -Werror)
+        endif()
+    endif()
 endif()
