@@ -78,10 +78,10 @@ This matrix tracks which critical requirements have automated test evidence, cod
 | Boot sequence | 17 | 100% | test_loxboot_boot_sequence.exe |
 | State management | 132 | 100% | test_loxboot_state_edges.exe |
 | UART frame | 43 | 100% | test_loxboot_uart_frame.exe |
-| UART session | 34 | 100% | test_loxboot_uart_receive.exe |
+| UART session | 38 | 100% | test_loxboot_uart_receive.exe |
 | Slot operations | 25 | 100% | test_loxboot_invalidate_slot.exe + others |
 | Init/CRC/rollback | 37 | 100% | test_loxboot_init.exe + others |
-| **TOTAL** | **362** | **100%** | All passing |
+| **TOTAL** | **366** | **100%** | All passing |
 
 ---
 
@@ -128,7 +128,7 @@ This matrix tracks which critical requirements have automated test evidence, cod
 
 ## Verdict
 
-**Code Quality:** ✅ 362 automated tests, 100% pass rate  
+**Code Quality:** ✅ 366 automated tests, 100% pass rate  
 **Build Quality:** ✅ MSVC verified, GCC/Clang flags configured  
 **Documentation:** ✅ Specification and integration guides complete  
 **Safety:** ✅ Critical bugs fixed, session state gated  

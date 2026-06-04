@@ -14,16 +14,17 @@
 ## Host (Automated Testing) ✅
 
 **Status:** Hardened bootloader core for testing  
-**Tests:** 363/363 passing (362 core + 1 flush validation)  
-**Compiler:** MSVC verified zero warnings; GCC/Clang flags configured
+**Tests:** 366/366 passing  
+**Compiler:** MSVC verified zero warnings; GCC/Clang flags configured (-Wall -Wextra -Wpedantic -Werror)
 
-**Coverage:**
-- Boot sequence: 17 tests
-- State management: 132 tests (corruption recovery)
-- UART protocol: 77 tests (frame + session + flush validation)
-- Slot operations: 25 tests
-- Init/CRC: 37 tests
-- UART session boundary: 75 tests
+**Coverage (13 test binaries):**
+- Boot sequence: 17 assertions (test_loxboot_boot_sequence)
+- State management: 132 assertions (test_loxboot_state_edges)
+- UART frame: 43 assertions (test_loxboot_uart_frame)
+- UART session: 38 assertions (test_loxboot_uart_receive)
+- Slot operations: 25 assertions (test_loxboot_invalidate_slot)
+- Init/CRC/rollback: 37 assertions
+- Misc slot control: 74 assertions
 
 ## ARM Cortex-M ⚠️
 
@@ -189,7 +190,7 @@ idf.py build
 
 | Target | Build Status | Notes |
 |--------|--------------|-------|
-| Host (MSVC) | ✅ | 363 tests passing, zero warnings |
+| Host (MSVC) | ✅ | 366 tests passing, zero warnings |
 | Host (GCC) | ✅ | Core-only cross-compile verified |
 | Host (Clang) | ✅ | Flags configured, not verified on Windows |
 | STM32 stub | ⚠️ | Fixed int-to-pointer cast, needs stub headers |

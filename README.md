@@ -154,12 +154,12 @@ ctest --test-dir build -C Debug --output-on-failure
 
 ## Test Coverage
 
-**362 automated tests (100% passing):**
+**366 automated tests (100% passing):**
 
 - **Boot sequence (17 tests):** loxboot_run, rollback, crash loop, recovery
 - **State management (132 tests):** R/W, dual-copy, corruption recovery
 - **UART frame (43 tests):** encode/decode, CRC16, payload validation
-- **UART session (34 tests):** gating, bounds, errors, full update flow
+- **UART session (38 tests):** gating, bounds, errors, null-flush, full update flow
 - **Slot operations (25 tests):** commit, invalidate, request, confirm
 - **Init/CRC/rollback (37 tests):** initialization, CRC32, state validation
 - **Misc (74 tests):** integration and edge cases

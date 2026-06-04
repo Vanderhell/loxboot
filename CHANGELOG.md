@@ -29,7 +29,7 @@ All notable changes to loxboot are documented in this file.
 ### Improvements
 - **Documentation:** Added RELEASE_CHECKLIST.md, EVIDENCE_MATRIX.md, docs/PROTOCOL_UART.md, docs/PLATFORM_STATUS.md
 - **Build verification:** Verified GCC/Clang warning flags configured in CMake
-- **Test expansion:** 336 → 362 tests with new frame/session validation cases
+- **Test expansion:** 336 → 366 tests with new frame/session validation cases
 
 ### Test Results
 ```
@@ -41,7 +41,7 @@ Slot operations:       25 tests ✅
 Init/CRC/rollback:     37 tests ✅
 Misc:                  74 tests ✅
 ────────────────────────────────
-Total:                362 tests ✅ (100% pass rate)
+Total:                366 tests ✅ (100% pass rate)
 ```
 
 ---

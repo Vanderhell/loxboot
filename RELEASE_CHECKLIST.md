@@ -1,7 +1,7 @@
 # v0.6.0 Hardening Status
 
 ## Code Quality ✅
-- [x] 362 automated tests passing (100% pass rate)
+- [x] 366 automated tests passing (100% pass rate)
 - [x] Zero MSVC warnings (/W4 /WX verified on Windows)
 - [x] GCC/Clang flags configured (-Wall -Wextra -Wpedantic -Werror, CMakeLists.txt:115)
 - [x] C99 only, no external dependencies
@@ -26,11 +26,11 @@
 - [x] Dual-copy state read/write/validate with corruption recovery
 - [x] All slot state transitions tested
 
-## Test Coverage ✅ (362 tests)
+## Test Coverage ✅ (366 tests)
 - [x] Core boot sequence: 17 tests
 - [x] State management: 132 tests (corruption recovery)
 - [x] UART protocol: 43 tests (frame encode/decode)
-- [x] UART session: 34 tests (gating, bounds, failure modes, full flow)
+- [x] UART session: 38 tests (gating, bounds, null-flush, failure modes, full flow)
 - [x] Slot operations: 25 tests
 - [x] Init/CRC/rollback: 37 tests
 - [ ] Adapter build tests: removed (requires real HAL/IDF)
