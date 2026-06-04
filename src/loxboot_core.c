@@ -585,8 +585,22 @@ boot_retry:
 #endif
     }
 
-    /* [8] Jump to application */
+    /* [8] Hand off to application */
     ctx->active_slot = active_slot;
+
+    if (ctx->platform_ops.handoff != NULL) {
+        /* Platform-specific handoff (e.g. ESP32: esp_ota_set_boot_partition + esp_restart) */
+        err = ctx->platform_ops.handoff(ctx->platform_ops.ctx, active_slot);
+        /* handoff must not return on success — if it did, treat as fatal */
+        ctx->hal.on_fatal(ctx->hal.ctx, (err != LOXBOOT_OK) ? err : LOXBOOT_ERR_INVALID_STATE);
+#ifdef LOXBOOT_TEST_HOOKS
+        return LOXBOOT_OK;
+#else
+        while (1) {}
+#endif
+    }
+
+    /* Default: ARM Cortex-M vector-table jump */
     loxboot_jump_to_app(slot_base);
     }
 

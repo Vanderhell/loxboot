@@ -109,8 +109,14 @@ loxstate,   data, 0x40,  0x10000,  0x1000,   # 4KB minimum
 loxbkup,    data, 0x41,  0x11000,  0x1000,   # 4KB minimum
 ```
 
-**Not yet verified:**
-- `loxboot_run()` jump to Xtensa application (ARM Cortex-M vector table style, not valid on Xtensa)
+**Architecture change in v0.7.0:**
+- `loxboot_run()` now uses `platform_ops.handoff()` callback instead of hardcoded ARM jump
+- ESP32 platform layer (`adapters/esp32/loxboot_esp32_platform.c`) implements handoff via `esp_ota_set_boot_partition()` + `esp_restart()`
+- ARM Cortex-M vector-table jump is the fallback when `platform_ops.handoff == NULL`
+- ESP32 handoff tested with stubs: 15/15 assertions pass (host, no ESP-IDF required)
+
+**Not yet verified on hardware:**
+- End-to-end boot after UART update (UART → slot PENDING → handoff → IDF bootloader loads new app)
 - Power-loss scenarios
 - OTA partition compatibility
 - Flash write verify (esp_partition_read after write)

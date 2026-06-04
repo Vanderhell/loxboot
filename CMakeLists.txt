@@ -155,21 +155,42 @@ if(LOXBOOT_BUILD_TESTS)
             # v0.4.0 — UART
             tests/test_loxboot_uart_frame.c
             tests/test_loxboot_uart_receive.c
+            # v0.7.0 — ESP32 platform (stub-based, no ESP-IDF required)
+            tests/test_loxboot_esp32_platform.c
         )
     endif()
 
     foreach(test_file IN LISTS LOXBOOT_TEST_FILES)
         if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${test_file}")
             get_filename_component(test_name "${test_file}" NAME_WE)
-            add_executable(${test_name}
-                "${test_file}"
-                tests/test_support.c
-            )
+
+            # ESP32 platform test needs its adapter sources compiled in (stubs provided by test)
+            if(test_name STREQUAL "test_loxboot_esp32_platform")
+                add_executable(${test_name}
+                    "${test_file}"
+                    tests/test_support.c
+                    adapters/esp32/loxboot_esp32_platform.c
+                )
+            else()
+                add_executable(${test_name}
+                    "${test_file}"
+                    tests/test_support.c
+                )
+            endif()
+
             target_link_libraries(${test_name} PRIVATE loxboot)
             target_include_directories(${test_name} PRIVATE
                 ${CMAKE_CURRENT_SOURCE_DIR}/tests
+                ${CMAKE_CURRENT_SOURCE_DIR}/adapters/esp32
             )
             target_compile_definitions(${test_name} PRIVATE ${LOXBOOT_TEST_DEFS})
+            # ESP32 platform test: inject stub defines so #ifdef ESP_PLATFORM paths compile
+            if(test_name STREQUAL "test_loxboot_esp32_platform")
+                target_compile_definitions(${test_name} PRIVATE
+                    ESP_PLATFORM=1
+                    LOXBOOT_ESP32_STUB_BUILD=1
+                )
+            endif()
             if(MSVC)
                 target_compile_options(${test_name} PRIVATE /W4 /WX)
             else()

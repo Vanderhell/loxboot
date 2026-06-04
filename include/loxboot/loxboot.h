@@ -212,6 +212,37 @@ typedef struct {
     void (*on_fatal)(void *ctx, loxboot_err_t reason);
 } loxboot_hal_t;
 
+/**
+ * loxboot_platform_ops_t — Platform-specific handoff operations.
+ *
+ * Controls how loxboot hands off execution to an application after boot
+ * selection. Different platforms require different mechanisms:
+ *
+ *   ARM Cortex-M: direct vector-table jump (slot_base + 0/4)
+ *   ESP32/Xtensa: esp_ota_set_boot_partition() + esp_restart()
+ *   RISC-V:       platform-defined entry point jump
+ *
+ * If handoff is NULL, loxboot falls back to the built-in ARM Cortex-M
+ * vector-table jump. This default is intentionally broken on non-ARM
+ * architectures — platforms MUST provide a handoff implementation.
+ *
+ * handoff MUST NOT RETURN on success. If it returns, loxboot calls on_fatal.
+ */
+typedef struct {
+    void         *ctx;
+    /**
+     * handoff — Transfer execution to the selected slot.
+     *
+     * Called by loxboot_run() as the final boot step after CRC verification
+     * and state update. Must not return on success.
+     *
+     * Parameters:
+     *   ctx  — platform context (this struct's ctx field)
+     *   slot — the slot selected for this boot (SLOT_A or SLOT_B)
+     */
+    loxboot_err_t (*handoff)(void *ctx, loxboot_slot_id_t slot);
+} loxboot_platform_ops_t;
+
 /* =========================================================================
  * Platform configuration
  * ====================================================================== */
@@ -249,6 +280,7 @@ typedef struct {
     loxboot_transport_adapter_t transport;
     loxboot_hal_t               hal;
     loxboot_platform_t          platform;
+    loxboot_platform_ops_t      platform_ops; /**< Handoff ops — NULL = ARM Cortex-M default */
 
     /* Runtime state — populated by loxboot_run(), read-only after */
     loxboot_state_t             state;        /**< Current boot state (in-RAM copy) */
