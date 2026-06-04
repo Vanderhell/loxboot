@@ -647,6 +647,64 @@ static void test_uart_flush_failure(void)
     CHECK_EQ_INT(err, LOXBOOT_ERR_TRANSPORT);
 }
 
+/* Test: Full UART update flow: HELLO -> WRITE -> COMMIT -> STATUS -> REBOOT */
+static void test_uart_full_update_flow(void)
+{
+    test_flash_t flash;
+    test_fatal_t fatal;
+    loxboot_t ctx;
+    mock_transport_t mock_t;
+    loxboot_state_t state;
+
+    test_flash_reset(&flash);
+    test_make_valid_ctx(&ctx, &flash, &fatal);
+    test_build_default_state(&state, LOXBOOT_SLOT_A);
+    test_seed_state(&flash, &ctx.platform, &state);
+    loxboot_init(&ctx);
+
+    memset(&mock_t, 0, sizeof(mock_t));
+
+    /* Queue full update sequence */
+    mock_queue_frame(&mock_t, LOXBOOT_UART_CMD_HELLO, NULL, 0u);
+
+    /* WRITE: offset=0, payload=0xAA 0xBB 0xCC 0xDD */
+    uint8_t write_payload[] = {0x00, 0x00, 0x00, 0x00, 0xAA, 0xBB, 0xCC, 0xDD};
+    mock_queue_frame(&mock_t, LOXBOOT_UART_CMD_WRITE, write_payload, sizeof(write_payload));
+
+    /* COMMIT: firmware_size=4, firmware_crc=0x12345678 */
+    uint8_t commit_payload[] = {0x04, 0x00, 0x00, 0x00, 0x78, 0x56, 0x34, 0x12};
+    mock_queue_frame(&mock_t, LOXBOOT_UART_CMD_COMMIT, commit_payload, sizeof(commit_payload));
+
+    /* STATUS: query current state */
+    mock_queue_frame(&mock_t, LOXBOOT_UART_CMD_STATUS, NULL, 0u);
+
+    /* REBOOT: exit session */
+    mock_queue_frame(&mock_t, LOXBOOT_UART_CMD_REBOOT, NULL, 0u);
+
+    loxboot_transport_adapter_t transport;
+    transport.ctx = &mock_t;
+    transport.read_byte = mock_read_byte;
+    transport.write_byte = mock_write_byte;
+    transport.flush = mock_flush;
+    ctx.transport = transport;
+
+    loxboot_clock_adapter_t clock;
+    clock.ctx = NULL;
+    clock.now_ms = mock_clock_now;
+    ctx.clock = clock;
+
+    loxboot_uart_session_t session;
+    memset(&session, 0, sizeof(session));
+    session.boot = &ctx;
+    session.listen_ms = 500u;
+
+    loxboot_err_t err = loxboot_uart_run_session(&session);
+    CHECK_EQ_INT(err, LOXBOOT_OK);
+
+    /* Verify responses were sent */
+    CHECK(mock_t.tx_len > 0u);
+}
+
 int main(void)
 {
     run_test("uart_no_hello_timeout", test_uart_no_hello_timeout);
@@ -667,6 +725,8 @@ int main(void)
     run_test("uart_abort_invalidates_slot", test_uart_abort_invalidates_slot);
     run_test("uart_write_byte_failure", test_uart_write_byte_failure);
     run_test("uart_flush_failure", test_uart_flush_failure);
+
+    run_test("uart_full_update_flow", test_uart_full_update_flow);
 
     (void)printf("passed=%d failed=%d\n", g_test_passed, g_test_failed);
     return (g_test_failed > 0) ? 1 : 0;
