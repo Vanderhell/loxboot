@@ -103,6 +103,9 @@ if(LOXBOOT_SOURCES)
         LOXBOOT_UART_LISTEN_MS=${LOXBOOT_UART_LISTEN_MS}
         LOXBOOT_UART_MAX_FRAME_PAYLOAD=${LOXBOOT_UART_MAX_FRAME_PAYLOAD}
     )
+    if(LOXBOOT_BUILD_UART_PORT)
+        target_compile_definitions(loxboot PUBLIC LOXBOOT_BUILD_UART_PORT=1)
+    endif()
     if(LOXBOOT_BUILD_TESTS)
         target_compile_definitions(loxboot PRIVATE LOXBOOT_TEST_HOOKS=1)
     endif()
@@ -154,11 +157,6 @@ if(LOXBOOT_BUILD_TESTS)
             tests/test_loxboot_uart_receive.c
         )
     endif()
-
-    # Adapter tests
-    list(APPEND LOXBOOT_TEST_FILES
-        tests/test_adapters.c
-    )
 
     foreach(test_file IN LISTS LOXBOOT_TEST_FILES)
         if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${test_file}")

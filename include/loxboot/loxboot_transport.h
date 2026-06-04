@@ -35,6 +35,7 @@ typedef struct {
     uint8_t  _frame_buf[LOXBOOT_UART_MAX_FRAME_PAYLOAD + 8]; /* SOF+CMD+LEN+CRC */
     uint32_t _bytes_written;
     bool     _session_active;
+    bool     _slot_erased;
 } loxboot_uart_session_t;
 
 /* =========================================================================

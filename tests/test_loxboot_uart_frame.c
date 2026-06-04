@@ -384,7 +384,7 @@ static void test_frame_reboot_zero_payload(void)
 /* Test frame encode with oversized payload */
 static void test_frame_encode_payload_too_large(void)
 {
-    uint8_t huge_payload[2048];
+    uint8_t huge_payload[2048] = {0};
     uint8_t frame_buf[256];
     size_t frame_len = sizeof(frame_buf);
 

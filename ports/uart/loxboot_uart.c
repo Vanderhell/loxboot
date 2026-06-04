@@ -214,14 +214,9 @@ loxboot_err_t loxboot_uart_run_session(loxboot_uart_session_t *session)
     uint32_t target_slot_base = (target_slot == LOXBOOT_SLOT_A) ?
                                 ctx->platform.slot_a_base : ctx->platform.slot_b_base;
 
-    err = ctx->flash.erase(ctx->flash.ctx, target_slot_base, ctx->platform.slot_size);
-    if (err != LOXBOOT_OK) {
-        loxboot_invalidate_slot(ctx, target_slot);
-        return err;
-    }
-
     session->_session_active = false;
     session->_bytes_written = 0u;
+    session->_slot_erased = false;
 
     uint32_t frame_timeout = 5000u;
 
@@ -345,6 +340,18 @@ loxboot_err_t loxboot_uart_run_session(loxboot_uart_session_t *session)
                     response_payload[0] = (uint8_t)LOXBOOT_ERR_INVALID_ARG;
                     response_payload_len = 1u;
                     break;
+                }
+
+                if (!session->_slot_erased) {
+                    err = ctx->flash.erase(ctx->flash.ctx, target_slot_base, ctx->platform.slot_size);
+                    if (err != LOXBOOT_OK) {
+                        response_code = LOXBOOT_UART_RSP_ERROR;
+                        response_payload[0] = (uint8_t)err;
+                        response_payload_len = 1u;
+                        loxboot_invalidate_slot(ctx, target_slot);
+                        break;
+                    }
+                    session->_slot_erased = true;
                 }
 
                 err = ctx->flash.write(ctx->flash.ctx, target_slot_base + offset, &payload_buf[4], write_len);
