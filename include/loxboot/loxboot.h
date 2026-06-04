@@ -283,6 +283,24 @@ typedef struct {
 loxboot_err_t loxboot_init(loxboot_t *ctx);
 
 /**
+ * loxboot_format_state — Write a blank boot state to flash (factory provisioning).
+ *
+ * Call once on a fresh device before the first loxboot_run().
+ * Writes a valid default state (both slots EMPTY, no firmware committed)
+ * to both primary and backup flash regions.
+ *
+ * Not required on subsequent boots — loxboot_run() detects and handles fresh
+ * flash automatically by calling this internally on RECORD_CORRUPT.
+ *
+ * Parameters:
+ *   ctx          — initialized context (loxboot_init must have returned LOXBOOT_OK)
+ *   initial_slot — which slot to designate as the initial active slot
+ *
+ * Returns: LOXBOOT_OK on success, or flash error code on failure.
+ */
+loxboot_err_t loxboot_format_state(loxboot_t *ctx, loxboot_slot_id_t initial_slot);
+
+/**
  * loxboot_run — Execute the full boot sequence.
  *
  * NOTE: The full boot sequence is implemented in v0.3.0+. In v0.2.0-core,

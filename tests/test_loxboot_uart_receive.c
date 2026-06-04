@@ -671,39 +671,44 @@ static void test_uart_flush_failure(void)
     CHECK_EQ_INT(err, LOXBOOT_ERR_TRANSPORT);
 }
 
-/* Test: Full UART update flow: HELLO -> WRITE -> COMMIT -> STATUS -> REBOOT */
+/* Test: Full UART update flow with real CRC32 and slot state validation */
 static void test_uart_full_update_flow(void)
 {
     test_flash_t flash;
     test_fatal_t fatal;
     loxboot_t ctx;
     mock_transport_t mock_t;
-    loxboot_state_t state;
+    loxboot_state_t boot_state;
 
     test_flash_reset(&flash);
     test_make_valid_ctx(&ctx, &flash, &fatal);
-    test_build_default_state(&state, LOXBOOT_SLOT_A);
-    test_seed_state(&flash, &ctx.platform, &state);
+    test_build_default_state(&boot_state, LOXBOOT_SLOT_A);
+    test_seed_state(&flash, &ctx.platform, &boot_state);
     loxboot_init(&ctx);
 
     memset(&mock_t, 0, sizeof(mock_t));
 
-    /* Queue full update sequence */
-    mock_queue_frame(&mock_t, LOXBOOT_UART_CMD_HELLO, NULL, 0u);
+    /* Firmware: 4 real bytes */
+    static const uint8_t firmware[4] = {0xAA, 0xBB, 0xCC, 0xDD};
+    uint32_t fw_crc = loxboot_crc32(firmware, sizeof(firmware));
 
-    /* WRITE: offset=0, payload=0xAA 0xBB 0xCC 0xDD */
-    uint8_t write_payload[] = {0x00, 0x00, 0x00, 0x00, 0xAA, 0xBB, 0xCC, 0xDD};
-    mock_queue_frame(&mock_t, LOXBOOT_UART_CMD_WRITE, write_payload, sizeof(write_payload));
+    /* Build WRITE payload: offset(4 LE) + firmware */
+    uint8_t write_payload[8] = {0x00, 0x00, 0x00, 0x00, 0xAA, 0xBB, 0xCC, 0xDD};
 
-    /* COMMIT: firmware_size=4, firmware_crc=0x12345678 */
-    uint8_t commit_payload[] = {0x04, 0x00, 0x00, 0x00, 0x78, 0x56, 0x34, 0x12};
+    /* Build COMMIT payload: size(4 LE) + crc(4 LE) */
+    uint8_t commit_payload[8];
+    commit_payload[0] = 0x04u; commit_payload[1] = 0x00u;
+    commit_payload[2] = 0x00u; commit_payload[3] = 0x00u;
+    commit_payload[4] = (uint8_t)(fw_crc & 0xFFu);
+    commit_payload[5] = (uint8_t)((fw_crc >> 8u)  & 0xFFu);
+    commit_payload[6] = (uint8_t)((fw_crc >> 16u) & 0xFFu);
+    commit_payload[7] = (uint8_t)((fw_crc >> 24u) & 0xFFu);
+
+    mock_queue_frame(&mock_t, LOXBOOT_UART_CMD_HELLO,  NULL,           0u);
+    mock_queue_frame(&mock_t, LOXBOOT_UART_CMD_WRITE,  write_payload,  sizeof(write_payload));
     mock_queue_frame(&mock_t, LOXBOOT_UART_CMD_COMMIT, commit_payload, sizeof(commit_payload));
-
-    /* STATUS: query current state */
-    mock_queue_frame(&mock_t, LOXBOOT_UART_CMD_STATUS, NULL, 0u);
-
-    /* REBOOT: exit session */
-    mock_queue_frame(&mock_t, LOXBOOT_UART_CMD_REBOOT, NULL, 0u);
+    mock_queue_frame(&mock_t, LOXBOOT_UART_CMD_STATUS, NULL,           0u);
+    mock_queue_frame(&mock_t, LOXBOOT_UART_CMD_REBOOT, NULL,           0u);
 
     loxboot_transport_adapter_t transport;
     transport.ctx = &mock_t;
@@ -712,27 +717,37 @@ static void test_uart_full_update_flow(void)
     transport.flush = mock_flush;
     ctx.transport = transport;
 
-    loxboot_clock_adapter_t clock;
-    clock.ctx = NULL;
-    clock.now_ms = mock_clock_now;
-    ctx.clock = clock;
+    loxboot_clock_adapter_t clk;
+    clk.ctx = NULL;
+    clk.now_ms = mock_clock_now;
+    ctx.clock = clk;
 
     loxboot_uart_session_t session;
     memset(&session, 0, sizeof(session));
-    session.boot = &ctx;
+    session.boot      = &ctx;
     session.listen_ms = 500u;
 
     loxboot_err_t err = loxboot_uart_run_session(&session);
     CHECK_EQ_INT(err, LOXBOOT_OK);
 
-    /* Verify session completed full UART update flow */
-    CHECK(mock_t.tx_len > 0u);                /* Responses sent to host */
-    CHECK_EQ_INT(session._bytes_written, 4u);  /* Wrote all 4 firmware bytes */
-    CHECK(session._slot_erased == true);       /* Slot erased on first WRITE */
-    CHECK(session._session_active == true);    /* Session remains active until timeout/error */
+    /* Session-level assertions */
+    CHECK_EQ_INT(session._bytes_written, 4u);
+    CHECK(session._slot_erased == true);
 
-    /* Command sequence validated: HELLO sent, WRITE accepted, COMMIT accepted,
-       STATUS returned, REBOOT received. Full update flow verified. */
+    /* Verify slot B is PENDING in flash with correct metadata */
+    loxboot_state_t final;
+    test_read_state_copy(&flash, ctx.platform.boot_state_primary_base, &final);
+    CHECK_EQ_INT(final.slots[LOXBOOT_SLOT_B].state, LOXBOOT_SLOT_STATE_PENDING);
+    CHECK_EQ_U32(final.slots[LOXBOOT_SLOT_B].firmware_size, 4u);
+    CHECK_EQ_U32(final.slots[LOXBOOT_SLOT_B].firmware_crc32, fw_crc);
+
+    /* Verify firmware bytes landed in slot B flash region */
+    uint8_t slot_buf[4] = {0};
+    test_flash_read(&flash, ctx.platform.slot_b_base, slot_buf, 4u);
+    CHECK_EQ_INT(slot_buf[0], 0xAAu);
+    CHECK_EQ_INT(slot_buf[1], 0xBBu);
+    CHECK_EQ_INT(slot_buf[2], 0xCCu);
+    CHECK_EQ_INT(slot_buf[3], 0xDDu);
 }
 
 int main(void)

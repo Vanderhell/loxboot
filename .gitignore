@@ -1,5 +1,6 @@
 build/
 build-release/
+build_*/
 .vs/
 CMakeSettings.json
 CMakeUserPresets.json
@@ -12,3 +13,18 @@ CMakeUserPresets.json
 /build-clangcl
 /build-msvc
 /build-test
+
+# ESP-IDF generated files
+idf_project/build/
+idf_project/.cache/
+idf_project/sdkconfig
+idf_project/sdkconfig.old
+idf_project/dependencies.lock
+idf_project/managed_components/
+
+# Python
+__pycache__/
+*.pyc
+
+# Zip archives (not source artifacts)
+*.zip

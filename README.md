@@ -2,7 +2,7 @@
 
 Minimal, adapter-based bootloader core for bare-metal MCUs. Host-tested reference implementation with platform adapters for STM32, ESP32, and others.
 
-**Latest release:** v0.6.0-esp32
+**Latest version:** v0.6.0 — host core + UART hardened
 
 ---
 

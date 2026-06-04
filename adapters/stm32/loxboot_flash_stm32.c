@@ -58,7 +58,7 @@ static loxboot_err_t stm32_flash_write(void *ctx, uint32_t addr, const uint8_t *
     return LOXBOOT_OK;
 }
 
-/* STM32 internal flash — erase via HAL */
+/* STM32 internal flash — erase via HAL (rounded up to page boundary) */
 static loxboot_err_t stm32_flash_erase(void *ctx, uint32_t addr, size_t len)
 {
     (void)ctx;
@@ -67,16 +67,18 @@ static loxboot_err_t stm32_flash_erase(void *ctx, uint32_t addr, size_t len)
         return LOXBOOT_OK;
     }
 
-    /* Check alignment (erase must be page-aligned) */
-    if ((addr % FLASH_PAGE_SIZE) != 0u || (len % FLASH_PAGE_SIZE) != 0u) {
-        return LOXBOOT_ERR_INVALID_ARG;
-    }
+    /* Round addr down and len up to FLASH_PAGE_SIZE boundaries.
+     * loxboot core may request sub-page erases (e.g., 52 bytes for boot state).
+     * The adapter is responsible for alignment — this is documented in PORTING.md. */
+    uint32_t aligned_addr = (addr / FLASH_PAGE_SIZE) * FLASH_PAGE_SIZE;
+    size_t   offset_adj   = addr - aligned_addr;
+    size_t   aligned_len  = ((len + offset_adj + FLASH_PAGE_SIZE - 1u) / FLASH_PAGE_SIZE) * FLASH_PAGE_SIZE;
 
     FLASH_EraseInitTypeDef erase_init;
     erase_init.TypeErase = FLASH_TYPEERASE_PAGES;
-    erase_init.Banks = FLASH_BANK_1;
-    erase_init.Page = addr / FLASH_PAGE_SIZE;
-    erase_init.NbPages = len / FLASH_PAGE_SIZE;
+    erase_init.Banks     = FLASH_BANK_1;
+    erase_init.Page      = aligned_addr / FLASH_PAGE_SIZE;
+    erase_init.NbPages   = aligned_len  / FLASH_PAGE_SIZE;
 
     uint32_t page_error = 0u;
 

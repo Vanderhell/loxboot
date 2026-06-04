@@ -173,7 +173,7 @@ static void test_boot_no_valid_slot(void)
     CHECK_EQ_INT(g_jump_count, 0);
 }
 
-/* Boot state both copies corrupt -> on_fatal */
+/* Boot state both copies corrupt -> auto-recover to blank state -> no valid slot -> on_fatal */
 static void test_boot_state_corrupt(void)
 {
     test_flash_t flash;
@@ -192,8 +192,10 @@ static void test_boot_state_corrupt(void)
 
     loxboot_run(&ctx);
 
+    /* loxboot_run() auto-recovers from corrupt state by writing blank state,
+     * then fails with NO_VALID_SLOT because no firmware has been committed. */
     CHECK_EQ_INT(fatal.count, 1);
-    CHECK_EQ_INT(fatal.last_reason, LOXBOOT_ERR_RECORD_CORRUPT);
+    CHECK_EQ_INT(fatal.last_reason, LOXBOOT_ERR_NO_VALID_SLOT);
     CHECK_EQ_INT(g_jump_count, 0);
 }
 

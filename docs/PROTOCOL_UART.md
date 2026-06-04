@@ -150,7 +150,7 @@ ACTIVE [_session_active = true]
 2. **Bounds Checking:** WRITE offset + length must not exceed slot size
 3. **Firmware Validation:** COMMIT size must equal written bytes
 4. **CRC Verification:** Firmware CRC verified at boot (not during update)
-5. **Slot Erase:** Target slot is erased during session init
+5. **Slot Erase:** Target slot is erased on first WRITE (not at session init)
 6. **Error Safety:** Any flash operation failure invalidates slot
 
 ## Error Handling

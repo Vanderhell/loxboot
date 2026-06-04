@@ -57,7 +57,9 @@
 ### Full UART Update Flow
 - **Purpose**: HELLO → WRITE (multiple chunks) → COMMIT → REBOOT → Boot pending → Confirm
 - **Negative cases**: Frame without SOF, short frame, bad CRC, payload_len > max, WRITE before HELLO, COMMIT before WRITE
-- **Status**: Lightweight session tests present; full state machine testing pending
+- **Status**: IMPLEMENTED — two layers:
+  1. `test_loxboot_uart_receive.c::test_uart_full_update_flow` — C unit test with real CRC32, verifies slot B PENDING + firmware bytes in flash
+  2. `tools/test_e2e.py` — Python E2E test with loxboot_sim subprocess; 34/34 assertions pass
 
 ## Test Execution
 

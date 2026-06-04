@@ -223,6 +223,20 @@ loxboot_err_t loxboot_invalidate_slot(loxboot_t *ctx, loxboot_slot_id_t slot)
     return LOXBOOT_OK;
 }
 
+loxboot_err_t loxboot_format_state(loxboot_t *ctx, loxboot_slot_id_t initial_slot)
+{
+    if (ctx == NULL || !ctx->initialized) {
+        return LOXBOOT_ERR_INVALID_ARG;
+    }
+    if (initial_slot != LOXBOOT_SLOT_A && initial_slot != LOXBOOT_SLOT_B) {
+        return LOXBOOT_ERR_INVALID_ARG;
+    }
+
+    loxboot_state_t fresh;
+    loxboot_state_make_default(&fresh, initial_slot);
+    return loxboot_state_write(ctx, &fresh);
+}
+
 loxboot_err_t loxboot_confirm_boot(loxboot_t *ctx)
 {
     if (ctx == NULL) {

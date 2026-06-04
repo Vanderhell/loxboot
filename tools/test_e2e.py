@@ -168,12 +168,14 @@ def send_recv(proc, frame: bytes) -> tuple[int, bytes]:
     return read_frame(proc)
 
 def finish(proc) -> dict:
-    proc.stdin.close()
+    # Do NOT close stdin before communicate() — on Python 3.13 communicate()
+    # attempts to flush an already-closed pipe and raises ValueError.
+    # communicate() closes stdin internally before reading stderr.
     try:
         _, stderr = proc.communicate(timeout=5)
     except subprocess.TimeoutExpired:
         proc.kill()
-        stderr = b""
+        _, stderr = proc.communicate()
     return parse_sim_stderr(stderr.decode(errors='replace'))
 
 # ---------------------------------------------------------------------------

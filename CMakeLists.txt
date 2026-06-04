@@ -197,5 +197,20 @@ if(LOXBOOT_BUILD_TESTS)
         else()
             target_compile_options(loxboot_sim PRIVATE -Wall -Wextra -Wpedantic -Werror)
         endif()
+
+        # Wire E2E Python test into CTest (requires Python3)
+        find_program(PYTHON3 NAMES python3 python)
+        if(PYTHON3)
+            add_test(
+                NAME loxboot_e2e
+                COMMAND ${PYTHON3}
+                    ${CMAKE_CURRENT_SOURCE_DIR}/tools/test_e2e.py
+                    --sim $<TARGET_FILE:loxboot_sim>
+            )
+            set_tests_properties(loxboot_e2e PROPERTIES
+                DEPENDS loxboot_sim
+                TIMEOUT 60
+            )
+        endif()
     endif()
 endif()
