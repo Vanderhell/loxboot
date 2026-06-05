@@ -1,6 +1,7 @@
 # loxboot — Bootloader Core
 
 [![Version](https://img.shields.io/github/v/tag/Vanderhell/loxboot?label=version&color=blue&style=flat-square)](https://github.com/Vanderhell/loxboot/tags)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 ![C99](https://img.shields.io/badge/standard-C99-00599C?style=flat-square&logo=c)
 ![Tests](https://img.shields.io/badge/tests-414%20passing-brightgreen?style=flat-square)
 ![No heap](https://img.shields.io/badge/heap-none%20%2F%20zero%20deps-success?style=flat-square)
