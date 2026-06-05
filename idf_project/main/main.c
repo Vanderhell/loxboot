@@ -7,11 +7,17 @@
 #include "esp_system.h"
 #include "esp_log.h"
 
+#include "esp_ota_ops.h"
+
 #include "loxboot/loxboot.h"
 #include "loxboot/loxboot_transport.h"
 #include "loxboot_flash_esp32.h"
+#include "loxboot_esp32_platform.h"
 
 static const char *TAG = "loxboot";
+
+/* Internal core helper (exported from loxboot_state.c, not in public header) */
+extern loxboot_err_t loxboot_state_read(loxboot_t *ctx, loxboot_state_t *out_state);
 
 #define USB_BUF 4096
 
@@ -124,10 +130,15 @@ static loxboot_err_t mflash_erase(void *ctx, uint32_t addr, size_t len)
 /* -------------------------------------------------------------------------
  * Bootloader entry point
  * ---------------------------------------------------------------------- */
-static loxboot_t g_loxboot;
+static loxboot_t                    g_loxboot;
+static loxboot_esp32_platform_ctx_t g_esp32_platform;
 
 void app_main(void)
 {
+    /* Confirm running app if in PENDING_VERIFY state (after OTA update).
+     * Called before any other init so rollback triggers on any crash after this point. */
+    loxboot_esp32_confirm_running_app();
+
     /* USB Serial JTAG init — this is COM19 on host */
     usb_serial_jtag_driver_config_t usb_cfg = {
         .rx_buffer_size = USB_BUF,
@@ -185,15 +196,70 @@ void app_main(void)
     g_loxboot.platform.slot_b_base             = p_sbb->address;
     g_loxboot.platform.slot_size               = p_sa->size;
 
+    /* Wire ESP32 OTA handoff (esp_ota_set_boot_partition + esp_restart) */
+    loxboot_esp32_platform_init(&g_loxboot, &g_esp32_platform, p_sa, p_sbb);
+
     loxboot_err_t err = loxboot_init(&g_loxboot);
     if (err != LOXBOOT_OK) {
         ESP_LOGE(TAG, "loxboot_init failed: %d", (int)err);
         on_fatal(NULL, err);
     }
 
-    ESP_LOGI(TAG, "Listening for update on UART0 (%dms window)...", LOXBOOT_UART_LISTEN_MS);
-    loxboot_run(&g_loxboot);
+    /* Ensure loxboot has a valid state on first boot (fresh flash) */
+    loxboot_state_t st;
+    if (loxboot_state_read(&g_loxboot, &st) != LOXBOOT_OK) {
+        loxboot_format_state(&g_loxboot, LOXBOOT_SLOT_A);
+    }
 
-    /* loxboot_run never returns on success */
-    on_fatal(NULL, LOXBOOT_ERR_INVALID_STATE);
+    /* Align loxboot state with IDF OTA truth (which partition is running) */
+    loxboot_esp32_sync_state_from_ota(&g_loxboot, &g_esp32_platform);
+
+    /* DIAGNOSTIC: report which partition is actually running */
+    {
+        const esp_partition_t *run = esp_ota_get_running_partition();
+        const esp_partition_t *boot = esp_ota_get_boot_partition();
+        ESP_LOGW(TAG, "RUNNING partition: %s @ 0x%06lx",
+                 run ? run->label : "?", (unsigned long)(run ? run->address : 0));
+        ESP_LOGW(TAG, "BOOT (next) partition: %s @ 0x%06lx",
+                 boot ? boot->label : "?", (unsigned long)(boot ? boot->address : 0));
+        ESP_LOGW(TAG, "loxboot active_slot=%d", (int)g_loxboot.state.active_slot);
+    }
+
+    /*
+     * ESP32 model: loxboot is an OTA UPDATER, not a bootloader.
+     * The IDF second-stage bootloader owns boot selection (via otadata).
+     * We loop running UART update sessions:
+     *   - on a committed update  -> handoff (set_boot_partition + restart)
+     *   - on a bare REBOOT       -> esp_restart()
+     *   - on timeout (no update) -> keep listening (the "application")
+     */
+    ESP_LOGI(TAG, "Listening for update via USB...");
+    while (1) {
+        loxboot_uart_session_t session;
+        memset(&session, 0, sizeof(session));
+        session.boot      = &g_loxboot;
+        session.listen_ms = LOXBOOT_UART_LISTEN_MS;
+
+        err = loxboot_uart_run_session(&session);
+        (void)err;
+
+        if (session._commit_done) {
+            ESP_LOGI(TAG, "Update committed to slot %d — handing off via OTA",
+                     (int)session._committed_slot);
+            loxboot_err_t herr = loxboot_esp32_handoff(&g_esp32_platform, session._committed_slot);
+            /* handoff calls esp_restart() on success — does not return */
+            ESP_LOGE(TAG, "HANDOFF FAILED: err=%d (esp_ota_set_boot_partition rejected image)",
+                     (int)herr);
+        }
+
+        if (session._reboot_requested) {
+            ESP_LOGI(TAG, "Reboot requested (no update) — restarting");
+            esp_restart();
+        }
+
+        /* Timeout with no update — yield to IDLE/watchdog, then keep listening.
+         * usb_serial_jtag_read_bytes may return without blocking the full window,
+         * so this delay prevents a busy-spin that starves the idle task. */
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
 }

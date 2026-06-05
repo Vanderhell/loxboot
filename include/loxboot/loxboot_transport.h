@@ -32,10 +32,13 @@ typedef struct {
     uint32_t                     listen_ms;     /**< How long to wait for CMD_HELLO */
 
     /* Internal state — zero-init, do not fill */
-    uint8_t  _frame_buf[LOXBOOT_UART_MAX_FRAME_PAYLOAD + 8]; /* SOF+CMD+LEN+CRC */
-    uint32_t _bytes_written;
-    bool     _session_active;
-    bool     _slot_erased;
+    uint8_t           _frame_buf[LOXBOOT_UART_MAX_FRAME_PAYLOAD + 8]; /* SOF+CMD+LEN+CRC */
+    uint32_t          _bytes_written;
+    bool              _session_active;
+    bool              _slot_erased;
+    bool              _commit_done;       /**< A slot was successfully committed this session */
+    loxboot_slot_id_t _committed_slot;    /**< Which slot was committed (valid if _commit_done) */
+    bool              _reboot_requested;  /**< Host sent CMD_REBOOT */
 } loxboot_uart_session_t;
 
 /* =========================================================================

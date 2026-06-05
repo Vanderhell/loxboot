@@ -7,11 +7,14 @@ idf_component_register(
         "${LOXBOOT_ROOT}/src/loxboot_state.c"
         "${LOXBOOT_ROOT}/ports/uart/loxboot_uart.c"
         "${LOXBOOT_ROOT}/adapters/esp32/loxboot_flash_esp32.c"
+        "${LOXBOOT_ROOT}/adapters/esp32/loxboot_esp32_platform.c"
     INCLUDE_DIRS
         "${LOXBOOT_ROOT}/include"
         "${LOXBOOT_ROOT}/adapters/esp32"
     REQUIRES
         esp_partition
+        esp_app_format
+        app_update
         driver
         esp_timer
 )

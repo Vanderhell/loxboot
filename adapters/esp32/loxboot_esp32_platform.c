@@ -1,6 +1,11 @@
 #include <stddef.h>
+#include <stdbool.h>
 #include "loxboot/loxboot.h"
 #include "loxboot_esp32_platform.h"
+
+/* Internal core helpers (exported from loxboot_state.c, not in public header) */
+extern loxboot_err_t loxboot_state_write(loxboot_t *ctx, const loxboot_state_t *state);
+extern loxboot_err_t loxboot_state_read(loxboot_t *ctx, loxboot_state_t *out_state);
 
 #if defined(ESP_PLATFORM) && !defined(LOXBOOT_ESP32_STUB_BUILD)
 #include "esp_ota_ops.h"
@@ -130,6 +135,17 @@ loxboot_err_t loxboot_esp32_sync_state_from_ota(
     }
 
 #ifdef ESP_PLATFORM
+    /* Read-modify-write: seed from the persisted state so magic, slot records
+     * and CRCs stay valid. Operating directly on ctx->state would write back an
+     * uninitialised (zero-magic) record and corrupt flash. */
+    loxboot_state_t state;
+    loxboot_err_t rerr = loxboot_state_read(ctx, &state);
+    if (rerr != LOXBOOT_OK) {
+        return rerr;
+    }
+
+    bool changed = false;
+
     /* Map each slot partition's OTA state into loxboot slot state */
     const esp_partition_t *partitions[2] = {
         platform->slot_a,
@@ -147,20 +163,40 @@ loxboot_err_t loxboot_esp32_sync_state_from_ota(
         }
 
         loxboot_slot_state_t new_state = map_ota_state(ota_state);
-        if ((uint8_t)new_state != ctx->state.slots[i].state) {
-            ctx->state.slots[i].state = (uint8_t)new_state;
+        if ((uint8_t)new_state != state.slots[i].state) {
+            state.slots[i].state = (uint8_t)new_state;
+            changed = true;
         }
     }
 
-    /* Mark the running partition's slot as ACTIVE */
+    /* Mark the running partition's slot as ACTIVE.
+     * Compare by flash address — esp_ota_get_running_partition() and
+     * esp_partition_find_first() may return different pointer instances
+     * for the same physical partition. */
     const esp_partition_t *running = esp_ota_get_running_partition();
     if (running != NULL) {
-        if (running == platform->slot_a) {
-            ctx->state.active_slot = (uint8_t)LOXBOOT_SLOT_A;
-        } else if (running == platform->slot_b) {
-            ctx->state.active_slot = (uint8_t)LOXBOOT_SLOT_B;
+        uint8_t new_active = state.active_slot;
+        if (platform->slot_a != NULL && running->address == platform->slot_a->address) {
+            new_active = (uint8_t)LOXBOOT_SLOT_A;
+        } else if (platform->slot_b != NULL && running->address == platform->slot_b->address) {
+            new_active = (uint8_t)LOXBOOT_SLOT_B;
+        }
+        if (new_active != state.active_slot) {
+            state.active_slot = new_active;
+            changed = true;
         }
     }
+
+    /* Persist to flash so subsequent reads (e.g. UART STATUS) reflect reality.
+     * IDF OTA data is the source of truth; this mirrors it into loxboot state.
+     * loxboot_state_write() recomputes CRCs over the seeded-valid record. */
+    if (changed) {
+        loxboot_err_t werr = loxboot_state_write(ctx, &state);
+        if (werr != LOXBOOT_OK) {
+            return werr;
+        }
+    }
+    ctx->state = state;
 #else
     (void)ctx;
     (void)platform;

@@ -29,7 +29,16 @@
 #include "esp_ota_ops.h"
 #include "esp_system.h"
 #else
-/* Host build or stub-based unit test */
+/* Host build or stub-based unit test.
+ * Concrete struct defined here so it is complete in every TU that compiles the
+ * stub paths (both the test file and loxboot_esp32_platform.c). Mirrors only the
+ * fields the adapter reads. */
+#include <stdint.h>
+struct esp_partition_t {
+    int         id;
+    const char *label;
+    uint32_t    address;
+};
 typedef struct esp_partition_t esp_partition_t;
 typedef int esp_err_t;
 #define ESP_OK   0

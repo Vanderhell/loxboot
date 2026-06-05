@@ -417,6 +417,24 @@ loxboot_err_t loxboot_commit_slot(loxboot_t *ctx,
                                    uint32_t firmware_crc32);
 
 /**
+ * loxboot_verify_slot — Verify a slot's firmware against its recorded CRC32.
+ *
+ * Reads the boot state, then streams firmware_size bytes from the slot's flash
+ * region and compares the computed CRC32 with the slot record's firmware_crc32.
+ *
+ * This is the same integrity check loxboot_run() performs at boot, exposed so
+ * "updater" platforms that hand off without calling loxboot_run() (e.g. the
+ * ESP32 OTA layer) can reject a corrupt image at commit time.
+ *
+ * Returns: LOXBOOT_OK if the CRC matches.
+ *          LOXBOOT_ERR_INVALID_ARG if ctx is NULL/uninitialised, slot invalid,
+ *                                  or the slot records firmware_size == 0.
+ *          LOXBOOT_ERR_CRC_MISMATCH if the computed CRC differs.
+ *          A flash error code if a slot read fails.
+ */
+loxboot_err_t loxboot_verify_slot(loxboot_t *ctx, loxboot_slot_id_t slot);
+
+/**
  * loxboot_invalidate_slot — Force a slot to LOXBOOT_SLOT_STATE_INVALID.
  *
  * Used by the transport layer after a write failure or CMD_ABORT.

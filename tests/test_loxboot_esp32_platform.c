@@ -18,8 +18,8 @@
  * ESP-IDF stubs — function implementations (struct defined in esp_ota_stub.h)
  * ====================================================================== */
 
-static struct esp_partition_t s_ota0 = { .id = 0, .label = "ota_0" };
-static struct esp_partition_t s_ota1 = { .id = 1, .label = "ota_1" };
+static struct esp_partition_t s_ota0 = { .id = 0, .label = "ota_0", .address = 0x20000 };
+static struct esp_partition_t s_ota1 = { .id = 1, .label = "ota_1", .address = 0x1A0000 };
 
 /* Stub state tracking */
 static const esp_partition_t *g_set_boot_called_with = NULL;

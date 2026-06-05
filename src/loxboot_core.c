@@ -184,6 +184,50 @@ loxboot_err_t loxboot_commit_slot(loxboot_t *ctx,
     return LOXBOOT_OK;
 }
 
+loxboot_err_t loxboot_verify_slot(loxboot_t *ctx, loxboot_slot_id_t slot)
+{
+    if (ctx == NULL || !ctx->initialized) {
+        return LOXBOOT_ERR_INVALID_ARG;
+    }
+    if (!loxboot_slot_id_valid(slot)) {
+        return LOXBOOT_ERR_INVALID_ARG;
+    }
+
+    loxboot_state_t state;
+    loxboot_err_t err = loxboot_state_read(ctx, &state);
+    if (err != LOXBOOT_OK) {
+        return err;
+    }
+
+    uint32_t firmware_size = state.slots[slot].firmware_size;
+    if (firmware_size == 0u) {
+        return LOXBOOT_ERR_INVALID_ARG;
+    }
+    uint32_t expected_crc = state.slots[slot].firmware_crc32;
+    uint32_t slot_base = (slot == LOXBOOT_SLOT_A) ?
+                         ctx->platform.slot_a_base : ctx->platform.slot_b_base;
+
+    /* static: bootloader is single-threaded; keeps this off the (small) stack. */
+    static uint8_t fw_buf[512];
+    uint32_t computed_crc = loxboot_crc32_init();
+    uint32_t remaining = firmware_size;
+    uint32_t offset = 0u;
+
+    while (remaining > 0u) {
+        size_t chunk_size = (remaining > sizeof(fw_buf)) ? sizeof(fw_buf) : (size_t)remaining;
+        err = ctx->flash.read(ctx->flash.ctx, slot_base + offset, fw_buf, chunk_size);
+        if (err != LOXBOOT_OK) {
+            return err;
+        }
+        computed_crc = loxboot_crc32_update(computed_crc, fw_buf, chunk_size);
+        offset += (uint32_t)chunk_size;
+        remaining -= (uint32_t)chunk_size;
+    }
+    computed_crc = loxboot_crc32_finalize(computed_crc);
+
+    return (computed_crc == expected_crc) ? LOXBOOT_OK : LOXBOOT_ERR_CRC_MISMATCH;
+}
+
 loxboot_err_t loxboot_invalidate_slot(loxboot_t *ctx, loxboot_slot_id_t slot)
 {
     if (ctx == NULL) {

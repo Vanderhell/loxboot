@@ -404,6 +404,24 @@ loxboot_err_t loxboot_uart_run_session(loxboot_uart_session_t *session)
                     break;
                 }
 
+                /* Verify the written image matches the declared CRC before
+                 * accepting the commit. loxboot_run() also checks this at boot,
+                 * but "updater" platforms (e.g. ESP32 OTA) hand off without
+                 * loxboot_run(), so a corrupt image must be caught here. */
+                err = loxboot_verify_slot(ctx, target_slot);
+                if (err != LOXBOOT_OK) {
+                    response_code = LOXBOOT_UART_RSP_ERROR;
+                    response_payload[0] = (uint8_t)err;
+                    response_payload_len = 1u;
+                    loxboot_invalidate_slot(ctx, target_slot);
+                    break;
+                }
+
+                /* Record the committed slot so the caller (loxboot_run or an
+                 * ESP32 update loop) can boot/handoff to it after the session. */
+                session->_commit_done    = true;
+                session->_committed_slot = target_slot;
+
                 response_code = LOXBOOT_UART_RSP_OK;
                 break;
             }
@@ -440,6 +458,8 @@ loxboot_err_t loxboot_uart_run_session(loxboot_uart_session_t *session)
                     response_payload_len = 1u;
                     break;
                 }
+
+                session->_reboot_requested = true;
 
                 size_t resp_len = sizeof(session->_frame_buf);
                 loxboot_uart_frame_encode(LOXBOOT_UART_RSP_OK, NULL, 0u, session->_frame_buf, &resp_len);
