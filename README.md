@@ -1,5 +1,40 @@
 # loxboot — Bootloader Core
 
+<!-- Project -->
+[![Version](https://img.shields.io/github/v/tag/Vanderhell/loxboot?label=version&color=blue&style=flat-square)](https://github.com/Vanderhell/loxboot/tags)
+[![Release](https://img.shields.io/github/v/release/Vanderhell/loxboot?include_prereleases&label=release&style=flat-square)](https://github.com/Vanderhell/loxboot/releases)
+[![Last commit](https://img.shields.io/github/last-commit/Vanderhell/loxboot?style=flat-square)](https://github.com/Vanderhell/loxboot/commits)
+[![Commit activity](https://img.shields.io/github/commit-activity/m/Vanderhell/loxboot?style=flat-square)](https://github.com/Vanderhell/loxboot/commits)
+![Status](https://img.shields.io/badge/status-not%20production%20ready-orange?style=flat-square)
+
+<!-- Quality -->
+![Tests](https://img.shields.io/badge/tests-414%20passing-brightgreen?style=flat-square)
+![Pass rate](https://img.shields.io/badge/pass%20rate-100%25-brightgreen?style=flat-square)
+![MSVC](https://img.shields.io/badge/MSVC%20%2FW4%20%2FWX-warning--free-success?style=flat-square)
+![ESP32-S3 E2E](https://img.shields.io/badge/ESP32--S3%20OTA-hardware%20verified-success?style=flat-square&logo=espressif)
+
+<!-- Tech -->
+![C99](https://img.shields.io/badge/C-C99-00599C?style=flat-square&logo=c)
+![Bare metal](https://img.shields.io/badge/target-bare--metal-black?style=flat-square)
+![No heap](https://img.shields.io/badge/heap-none-success?style=flat-square)
+![Dependencies](https://img.shields.io/badge/dependencies-none-success?style=flat-square)
+![Transport](https://img.shields.io/badge/transport-UART%20OTA-blue?style=flat-square)
+
+<!-- Platforms -->
+![STM32](https://img.shields.io/badge/STM32-adapter-03234B?style=flat-square&logo=stmicroelectronics)
+![ESP32-S3](https://img.shields.io/badge/ESP32--S3-adapter-E7352C?style=flat-square&logo=espressif)
+![Cortex-M](https://img.shields.io/badge/ARM%20Cortex--M-jump%20%28unverified%29-lightgrey?style=flat-square&logo=arm)
+
+<!-- Repo -->
+[![Top language](https://img.shields.io/github/languages/top/Vanderhell/loxboot?style=flat-square)](https://github.com/Vanderhell/loxboot)
+[![Languages](https://img.shields.io/github/languages/count/Vanderhell/loxboot?style=flat-square)](https://github.com/Vanderhell/loxboot)
+[![Code size](https://img.shields.io/github/languages/code-size/Vanderhell/loxboot?style=flat-square)](https://github.com/Vanderhell/loxboot)
+[![Repo size](https://img.shields.io/github/repo-size/Vanderhell/loxboot?style=flat-square)](https://github.com/Vanderhell/loxboot)
+[![Files](https://img.shields.io/github/directory-file-count/Vanderhell/loxboot?style=flat-square)](https://github.com/Vanderhell/loxboot)
+[![Issues](https://img.shields.io/github/issues/Vanderhell/loxboot?style=flat-square)](https://github.com/Vanderhell/loxboot/issues)
+[![Pull requests](https://img.shields.io/github/issues-pr/Vanderhell/loxboot?style=flat-square)](https://github.com/Vanderhell/loxboot/pulls)
+[![Stars](https://img.shields.io/github/stars/Vanderhell/loxboot?style=flat-square)](https://github.com/Vanderhell/loxboot/stargazers)
+
 Minimal, adapter-based bootloader core for bare-metal MCUs. Host-tested reference implementation with platform adapters for STM32, ESP32, and others.
 
 **Latest version:** v0.7.0 — host core + UART + ESP32-S3 hardware verified
