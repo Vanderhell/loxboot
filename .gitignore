@@ -28,3 +28,7 @@ __pycache__/
 
 # Zip archives (not source artifacts)
 *.zip
+
+# Local AI assistant instructions (not part of the public project)
+CLAUDE.md
+.claude/
