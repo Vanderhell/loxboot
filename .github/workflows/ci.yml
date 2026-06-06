@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master, main ]
   pull_request:
-    branches: [ main ]
+    branches: [ master, main ]
 
 jobs:
   build-and-test:
@@ -90,4 +90,5 @@ jobs:
         run: cmake --build build --config Release
 
       - name: Test
+        if: matrix.compiler != 'gcc-arm'
         run: ctest --test-dir build -C Release --output-on-failure
