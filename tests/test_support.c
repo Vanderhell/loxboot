@@ -32,7 +32,7 @@ loxboot_err_t test_flash_read(void *ctx, uint32_t addr, uint8_t *buf, size_t len
         flash->fail_read_on_addr = false;
         return LOXBOOT_ERR_FLASH_READ;
     }
-    if (buf == NULL || addr > TEST_FLASH_SIZE || len > TEST_FLASH_SIZE || (addr + len) > TEST_FLASH_SIZE) {
+    if (buf == NULL || addr > TEST_FLASH_SIZE || len > TEST_FLASH_SIZE || len > (size_t)(TEST_FLASH_SIZE - addr)) {
         return LOXBOOT_ERR_FLASH_READ;
     }
     memcpy(buf, &flash->mem[addr], len);
@@ -50,7 +50,7 @@ loxboot_err_t test_flash_write(void *ctx, uint32_t addr, const uint8_t *buf, siz
         flash->fail_write_on_addr = false;
         return LOXBOOT_ERR_FLASH_WRITE;
     }
-    if (buf == NULL || addr > TEST_FLASH_SIZE || len > TEST_FLASH_SIZE || (addr + len) > TEST_FLASH_SIZE) {
+    if (buf == NULL || addr > TEST_FLASH_SIZE || len > TEST_FLASH_SIZE || len > (size_t)(TEST_FLASH_SIZE - addr)) {
         return LOXBOOT_ERR_FLASH_WRITE;
     }
     memcpy(&flash->mem[addr], buf, len);
@@ -68,7 +68,7 @@ loxboot_err_t test_flash_erase(void *ctx, uint32_t addr, size_t len)
         flash->fail_erase_on_addr = false;
         return LOXBOOT_ERR_FLASH_ERASE;
     }
-    if (addr > TEST_FLASH_SIZE || len > TEST_FLASH_SIZE || (addr + len) > TEST_FLASH_SIZE) {
+    if (addr > TEST_FLASH_SIZE || len > TEST_FLASH_SIZE || len > (size_t)(TEST_FLASH_SIZE - addr)) {
         return LOXBOOT_ERR_FLASH_ERASE;
     }
     memset(&flash->mem[addr], 0xFF, len);

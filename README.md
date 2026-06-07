@@ -3,14 +3,17 @@
 [![Version](https://img.shields.io/github/v/tag/Vanderhell/loxboot?label=version&color=blue&style=flat-square)](https://github.com/Vanderhell/loxboot/tags)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 ![C99](https://img.shields.io/badge/standard-C99-00599C?style=flat-square&logo=c)
-![Tests](https://img.shields.io/badge/tests-414%20passing-brightgreen?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-15%20passing-brightgreen?style=flat-square)
 ![No heap](https://img.shields.io/badge/heap-none%20%2F%20zero%20deps-success?style=flat-square)
 ![Platforms](https://img.shields.io/badge/platforms-STM32%20%7C%20ESP32--S3-555?style=flat-square)
 ![Status](https://img.shields.io/badge/status-not%20production%20ready-orange?style=flat-square)
 
 Minimal, adapter-based bootloader core for bare-metal MCUs. Host-tested reference implementation with platform adapters for STM32, ESP32, and others.
 
-**Latest version:** v0.7.0 — host core + UART + ESP32-S3 hardware verified
+Local verification in this workspace:
+- `15/15` CTest binaries passing
+- `GitHub Actions: NOT RUN / unavailable locally`
+- ESP32-S3 hardware verification: `NOT VERIFIED locally`
 
 ---
 
@@ -21,7 +24,7 @@ Minimal, adapter-based bootloader core for bare-metal MCUs. Host-tested referenc
 - Foundation for vendor-specific platform adaptations
 - Development and testing of boot firmware infrastructure
 
-**Host core** (port-agnostic) is verified: 414 automated tests passing (100% pass rate), zero MSVC warnings.
+**Host core** (port-agnostic) is verified locally: `15/15` CTest binaries passing.
 
 **Platform adapters** (STM32, ESP32) require hardening:
 - Flash erase granularity model (sector vs. byte erase)
@@ -53,7 +56,7 @@ All hardware access is injected via adapter function pointers — no vendor-spec
 ### Core (src/)
 - `loxboot_core.c` — loxboot_run(), slot control, state management
 - `loxboot_state.c` — State read/write/validate with dual-copy recovery
-- `loxboot_crc32.c` — CRC32-CCITT implementation (polynomial 0xEDB88320)
+- `loxboot_crc32.c` — standard CRC32/IEEE implementation (polynomial 0xEDB88320)
 
 ### Adapters (adapters/)
 - `adapters/stm32/loxboot_flash_stm32.c` — STM32 HAL flash driver
@@ -123,7 +126,7 @@ loxboot_confirm_boot(&ctx);  /* Resets crash counter */
 
 ### Configure
 ```bash
-cmake -S . -B build -DLOXBOOT_BUILD_TESTS=ON
+cmake -S . -B build
 ```
 
 Optional flags:
@@ -137,7 +140,7 @@ Optional flags:
 
 ### Build & Test
 ```bash
-cmake --build build --config Debug
+cmake --build build
 ctest --test-dir build -C Debug --output-on-failure
 ```
 
@@ -162,24 +165,19 @@ ctest --test-dir build -C Debug --output-on-failure
 
 ## Test Coverage
 
-**366 automated tests (100% passing):**
+**Local test coverage:** `15/15` CTest binaries passing in this workspace.
 
-- **Boot sequence (17 tests):** loxboot_run, rollback, crash loop, recovery
-- **State management (132 tests):** R/W, dual-copy, corruption recovery
-- **UART frame (43 tests):** encode/decode, CRC16, payload validation
-- **UART session (38 tests):** gating, bounds, errors, null-flush, full update flow
-- **Slot operations (25 tests):** commit, invalidate, request, confirm
-- **Init/CRC/rollback (37 tests):** initialization, CRC32, state validation
-- **Misc (74 tests):** integration and edge cases
+- Boot sequence
+- State management
+- UART frame
+- UART session
+- Slot operations
+- Init/CRC/rollback
+- ESP32 platform stub tests
+- E2E simulator test
 
-**Tested in CI (5-target matrix):**
-- Ubuntu GCC with `-Wall -Wextra -Wpedantic -Werror`
-- Ubuntu Clang with `-Wall -Wextra -Wpedantic -Werror`
-- Ubuntu arm-none-eabi-gcc (ARM Cortex-M cross-compile, core-only)
-- Windows MSVC with `/W4 /WX`
-- Windows Clang-cl with `-Wall -Wextra -Werror`
-
-**Note:** CI tests core + UART (13 tests). Hardware adapters (STM32, ESP32) are **not** tested in CI because they require vendor HAL headers (stm32_hal.h, esp_partition.h). Each adapter must be verified on physical hardware with the target platform's HAL/IDF.
+**GitHub Actions:** NOT RUN / unavailable locally.
+**Hardware adapters (STM32, ESP32):** not hardware verified locally.
 
 ---
 

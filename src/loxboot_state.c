@@ -10,6 +10,11 @@ static bool loxboot_slot_state_valid(uint8_t state)
     return state <= (uint8_t)LOXBOOT_SLOT_STATE_ROLLBACK;
 }
 
+static bool loxboot_slot_id_valid_u8(uint8_t slot)
+{
+    return slot == (uint8_t)LOXBOOT_SLOT_A || slot == (uint8_t)LOXBOOT_SLOT_B;
+}
+
 static uint32_t loxboot_slot_record_crc32(const loxboot_slot_record_t *rec)
 {
     return loxboot_crc32((const uint8_t *)rec, offsetof(loxboot_slot_record_t, record_crc32));
@@ -49,6 +54,9 @@ static bool loxboot_state_is_valid(const loxboot_state_t *st)
         return false;
     }
     if (loxboot_state_crc32(st) != st->state_crc32) {
+        return false;
+    }
+    if (!loxboot_slot_id_valid_u8(st->active_slot)) {
         return false;
     }
 

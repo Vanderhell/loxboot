@@ -20,6 +20,12 @@ set(LOXBOOT_MAX_BOOT_ATTEMPTS  "3"    CACHE STRING "Max boot attempts before rol
 set(LOXBOOT_UART_LISTEN_MS     "3000" CACHE STRING "UART listen window in ms (0=disabled)")
 set(LOXBOOT_UART_MAX_FRAME_PAYLOAD "1024" CACHE STRING "Max UART frame payload in bytes")
 
+function(loxboot_require_file path)
+    if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${path}")
+        message(FATAL_ERROR "Required file missing: ${path}")
+    endif()
+endfunction()
+
 # ---------------------------------------------------------------------------
 # Core sources (v0.2.0+)
 # ---------------------------------------------------------------------------
@@ -51,35 +57,29 @@ set(LOXBOOT_ESP32_SOURCES  adapters/esp32/loxboot_flash_esp32.c)
 
 set(LOXBOOT_SOURCES "")
 
-# At v0.1.0-spec there are no sources yet.
-# At v0.2.0+ sources are added. Guard prevents build errors on empty src/.
 foreach(f IN LISTS LOXBOOT_CORE_SOURCES)
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${f}")
-        list(APPEND LOXBOOT_SOURCES "${f}")
-    endif()
+    loxboot_require_file("${f}")
+    list(APPEND LOXBOOT_SOURCES "${f}")
 endforeach()
 
 if(LOXBOOT_BUILD_UART_PORT)
     foreach(f IN LISTS LOXBOOT_UART_SOURCES)
-        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${f}")
-            list(APPEND LOXBOOT_SOURCES "${f}")
-        endif()
+        loxboot_require_file("${f}")
+        list(APPEND LOXBOOT_SOURCES "${f}")
     endforeach()
 endif()
 
 if(LOXBOOT_BUILD_STM32_ADAPTER)
     foreach(f IN LISTS LOXBOOT_STM32_SOURCES)
-        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${f}")
-            list(APPEND LOXBOOT_SOURCES "${f}")
-        endif()
+        loxboot_require_file("${f}")
+        list(APPEND LOXBOOT_SOURCES "${f}")
     endforeach()
 endif()
 
 if(LOXBOOT_BUILD_ESP32_ADAPTER)
     foreach(f IN LISTS LOXBOOT_ESP32_SOURCES)
-        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${f}")
-            list(APPEND LOXBOOT_SOURCES "${f}")
-        endif()
+        loxboot_require_file("${f}")
+        list(APPEND LOXBOOT_SOURCES "${f}")
     endforeach()
 endif()
 
@@ -161,49 +161,50 @@ if(LOXBOOT_BUILD_TESTS)
     endif()
 
     foreach(test_file IN LISTS LOXBOOT_TEST_FILES)
-        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${test_file}")
-            get_filename_component(test_name "${test_file}" NAME_WE)
+        loxboot_require_file("${test_file}")
+        get_filename_component(test_name "${test_file}" NAME_WE)
 
-            # ESP32 platform test needs its adapter sources compiled in (stubs provided by test)
-            if(test_name STREQUAL "test_loxboot_esp32_platform")
-                add_executable(${test_name}
-                    "${test_file}"
-                    tests/test_support.c
-                    adapters/esp32/loxboot_esp32_platform.c
-                )
-            else()
-                add_executable(${test_name}
-                    "${test_file}"
-                    tests/test_support.c
-                )
-            endif()
-
-            target_link_libraries(${test_name} PRIVATE loxboot)
-            target_include_directories(${test_name} PRIVATE
-                ${CMAKE_CURRENT_SOURCE_DIR}/tests
-                ${CMAKE_CURRENT_SOURCE_DIR}/adapters/esp32
+        # ESP32 platform test needs its adapter sources compiled in (stubs provided by test)
+        if(test_name STREQUAL "test_loxboot_esp32_platform")
+            loxboot_require_file("adapters/esp32/loxboot_esp32_platform.c")
+            add_executable(${test_name}
+                "${test_file}"
+                tests/test_support.c
+                adapters/esp32/loxboot_esp32_platform.c
             )
-            target_compile_definitions(${test_name} PRIVATE ${LOXBOOT_TEST_DEFS})
-            # ESP32 platform test: inject stub defines so #ifdef ESP_PLATFORM paths compile
-            if(test_name STREQUAL "test_loxboot_esp32_platform")
-                target_compile_definitions(${test_name} PRIVATE
-                    ESP_PLATFORM=1
-                    LOXBOOT_ESP32_STUB_BUILD=1
-                )
-            endif()
-            if(MSVC)
-                target_compile_options(${test_name} PRIVATE /W4 /WX)
-            else()
-                target_compile_options(${test_name} PRIVATE -Wall -Wextra -Wpedantic -Werror)
-            endif()
-            add_test(NAME ${test_name} COMMAND ${test_name})
+        else()
+            add_executable(${test_name}
+                "${test_file}"
+                tests/test_support.c
+            )
         endif()
+
+        target_link_libraries(${test_name} PRIVATE loxboot)
+        target_include_directories(${test_name} PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/adapters/esp32
+        )
+        target_compile_definitions(${test_name} PRIVATE ${LOXBOOT_TEST_DEFS})
+        # ESP32 platform test: inject stub defines so #ifdef ESP_PLATFORM paths compile
+        if(test_name STREQUAL "test_loxboot_esp32_platform")
+            target_compile_definitions(${test_name} PRIVATE
+                ESP_PLATFORM=1
+                LOXBOOT_ESP32_STUB_BUILD=1
+            )
+        endif()
+        if(MSVC)
+            target_compile_options(${test_name} PRIVATE /W4 /WX)
+        else()
+            target_compile_options(${test_name} PRIVATE -Wall -Wextra -Wpedantic -Werror)
+        endif()
+        add_test(NAME ${test_name} COMMAND ${test_name})
     endforeach()
 
     # -----------------------------------------------------------------------
     # UART device simulator — used by tools/test_e2e.py for E2E testing
     # -----------------------------------------------------------------------
     if(LOXBOOT_BUILD_UART_PORT)
+        loxboot_require_file("tools/loxboot_sim.c")
         add_executable(loxboot_sim
             tools/loxboot_sim.c
             tests/test_support.c

@@ -20,10 +20,37 @@ static bool loxboot_slot_id_valid(loxboot_slot_id_t slot)
     return (slot == LOXBOOT_SLOT_A) || (slot == LOXBOOT_SLOT_B);
 }
 
+static bool loxboot_u32_add_checked(uint32_t base, uint32_t add, uint32_t *out)
+{
+    uint64_t sum = (uint64_t)base + (uint64_t)add;
+    if (sum > UINT32_MAX) {
+        return false;
+    }
+    *out = (uint32_t)sum;
+    return true;
+}
+
+static bool loxboot_range_end_checked(uint32_t base, uint32_t size, uint32_t *end_out)
+{
+    return loxboot_u32_add_checked(base, size, end_out);
+}
+
 static bool loxboot_ranges_overlap(uint32_t base_a, uint32_t size_a, uint32_t base_b, uint32_t size_b)
 {
-    uint32_t end_a = base_a + size_a;
-    uint32_t end_b = base_b + size_b;
+    uint32_t end_a;
+    uint32_t end_b;
+
+    if (!loxboot_range_end_checked(base_a, size_a, &end_a)) {
+        return false;
+    }
+    if (!loxboot_range_end_checked(base_b, size_b, &end_b)) {
+        return false;
+    }
+
+    if (size_a == 0u || size_b == 0u) {
+        return false;
+    }
+
     return (base_a < end_b) && (base_b < end_a);
 }
 
@@ -84,6 +111,20 @@ loxboot_err_t loxboot_init(loxboot_t *ctx)
 
     const uint32_t slot_size = ctx->platform.slot_size;
     const uint32_t state_size = (uint32_t)sizeof(loxboot_state_t);
+    uint32_t range_end;
+
+    if (!loxboot_range_end_checked(ctx->platform.slot_a_base, slot_size, &range_end)) {
+        return LOXBOOT_ERR_INVALID_ARG;
+    }
+    if (!loxboot_range_end_checked(ctx->platform.slot_b_base, slot_size, &range_end)) {
+        return LOXBOOT_ERR_INVALID_ARG;
+    }
+    if (!loxboot_range_end_checked(ctx->platform.boot_state_primary_base, state_size, &range_end)) {
+        return LOXBOOT_ERR_INVALID_ARG;
+    }
+    if (!loxboot_range_end_checked(ctx->platform.boot_state_backup_base, state_size, &range_end)) {
+        return LOXBOOT_ERR_INVALID_ARG;
+    }
 
     if (loxboot_ranges_overlap(ctx->platform.slot_a_base, slot_size,
                               ctx->platform.slot_b_base, slot_size)) {
@@ -208,14 +249,18 @@ loxboot_err_t loxboot_verify_slot(loxboot_t *ctx, loxboot_slot_id_t slot)
                          ctx->platform.slot_a_base : ctx->platform.slot_b_base;
 
     /* static: bootloader is single-threaded; keeps this off the (small) stack. */
-    static uint8_t fw_buf[512];
+    static uint8_t fw_buf[LOXBOOT_FW_VERIFY_CHUNK_SIZE];
     uint32_t computed_crc = loxboot_crc32_init();
     uint32_t remaining = firmware_size;
     uint32_t offset = 0u;
 
     while (remaining > 0u) {
         size_t chunk_size = (remaining > sizeof(fw_buf)) ? sizeof(fw_buf) : (size_t)remaining;
-        err = ctx->flash.read(ctx->flash.ctx, slot_base + offset, fw_buf, chunk_size);
+        uint32_t read_addr;
+        if (!loxboot_u32_add_checked(slot_base, offset, &read_addr)) {
+            return LOXBOOT_ERR_INVALID_STATE;
+        }
+        err = ctx->flash.read(ctx->flash.ctx, read_addr, fw_buf, chunk_size);
         if (err != LOXBOOT_OK) {
             return err;
         }
@@ -401,6 +446,20 @@ static void loxboot_jump_to_app(uint32_t slot_base)
     app();
 }
 
+static bool loxboot_default_handoff_allowed(void)
+{
+#ifdef LOXBOOT_TEST_HOOKS
+    if (g_jump_hook != NULL) {
+        return true;
+    }
+#endif
+#if defined(__arm__) || defined(__thumb__) || defined(__ARM_ARCH)
+    return true;
+#else
+    return false;
+#endif
+}
+
 static loxboot_err_t loxboot_run_rollback(loxboot_t *ctx, loxboot_slot_id_t active_slot)
 {
     loxboot_state_t state;
@@ -560,7 +619,7 @@ boot_retry:
                          ctx->platform.slot_a_base : ctx->platform.slot_b_base;
     uint32_t expected_crc = ctx->state.slots[active_slot].firmware_crc32;
 
-    uint8_t fw_buf[4096];
+    uint8_t fw_buf[LOXBOOT_FW_VERIFY_CHUNK_SIZE];
     uint32_t computed_crc = loxboot_crc32_init();
 
     if (firmware_size > 0u) {
@@ -569,7 +628,16 @@ boot_retry:
 
         while (remaining > 0u) {
             size_t chunk_size = (remaining > sizeof(fw_buf)) ? sizeof(fw_buf) : (size_t)remaining;
-            err = ctx->flash.read(ctx->flash.ctx, slot_base + offset, fw_buf, chunk_size);
+            uint32_t read_addr;
+            if (!loxboot_u32_add_checked(slot_base, offset, &read_addr)) {
+                ctx->hal.on_fatal(ctx->hal.ctx, LOXBOOT_ERR_INVALID_STATE);
+#ifdef LOXBOOT_TEST_HOOKS
+                return LOXBOOT_OK;
+#else
+                while (1) {}
+#endif
+            }
+            err = ctx->flash.read(ctx->flash.ctx, read_addr, fw_buf, chunk_size);
             if (err != LOXBOOT_OK) {
                 ctx->state.slots[active_slot].state = LOXBOOT_SLOT_STATE_INVALID;
                 ctx->state.slots[active_slot].record_crc32 = loxboot_slot_record_crc32(&ctx->state.slots[active_slot]);
@@ -637,6 +705,15 @@ boot_retry:
         err = ctx->platform_ops.handoff(ctx->platform_ops.ctx, active_slot);
         /* handoff must not return on success — if it did, treat as fatal */
         ctx->hal.on_fatal(ctx->hal.ctx, (err != LOXBOOT_OK) ? err : LOXBOOT_ERR_INVALID_STATE);
+#ifdef LOXBOOT_TEST_HOOKS
+        return LOXBOOT_OK;
+#else
+        while (1) {}
+#endif
+    }
+
+    if (!loxboot_default_handoff_allowed()) {
+        ctx->hal.on_fatal(ctx->hal.ctx, LOXBOOT_ERR_INVALID_STATE);
 #ifdef LOXBOOT_TEST_HOOKS
         return LOXBOOT_OK;
 #else

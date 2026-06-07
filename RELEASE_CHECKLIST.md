@@ -1,9 +1,9 @@
 # v0.7.0 Status
 
 ## Code Quality ✅
-- [x] 371 automated tests passing (100% pass rate, 14 CTests)
-- [x] Zero MSVC warnings (/W4 /WX verified on Windows)
-- [x] GCC/Clang flags configured (-Wall -Wextra -Wpedantic -Werror, CMakeLists.txt:115)
+- [x] 15/15 CTest binaries passing in this workspace
+- [x] MSVC Debug build passed under the existing `/W4 /WX` settings
+- [x] GCC/Clang flags configured (`-Wall -Wextra -Wpedantic -Werror`, `CMakeLists.txt`)
 - [x] C99 only, no external dependencies
 - [x] 8 critical bugs fixed: frame validation, session gating, erase timing, NULL checks, adapter headers, uninitialized variables
 
@@ -26,23 +26,20 @@
 - [x] Dual-copy state read/write/validate with corruption recovery
 - [x] All slot state transitions tested
 
-## Test Coverage ✅ (366 tests)
-- [x] Core boot sequence: 17 tests
-- [x] State management: 132 tests (corruption recovery)
-- [x] UART protocol: 43 tests (frame encode/decode)
-- [x] UART session: 38 tests (gating, bounds, null-flush, failure modes, full flow)
-- [x] Slot operations: 25 tests
-- [x] Init/CRC/rollback: 37 tests
-- [ ] Adapter build tests: removed (requires real HAL/IDF)
+## Test Coverage ✅ (local verification)
+- [x] 15/15 CTest binaries passing in this workspace
+- [x] Boot sequence, state management, UART frame/session, slot operations, init/CRC/rollback
+- [x] ESP32 platform stub tests
+- [ ] Hardware adapter validation: not verified locally (requires real HAL/IDF)
 
 ## Build Status ✅
-- [x] MSVC: All tests compile and pass
-- [ ] GCC: Must verify separately (Windows environment limitation)
-- [ ] Clang: Must verify separately (Windows environment limitation)
+- [x] MSVC: build and CTest passed locally in this workspace
+- [ ] GCC: NOT RUN / unavailable locally
+- [ ] Clang: NOT RUN / unavailable locally
 - [x] LOXBOOT_BUILD_UART_PORT properly wired in CMake
 
 ## Documentation ✅
-- [x] README: Version accurate, no false production claims
+- [x] README: NOT PRODUCTION READY, local verification count consistent
 - [x] API headers: frame_encode/decode, loxboot_format_state() in public API
 - [x] CHANGELOG.md: v0.7.0 entry complete
 - [x] KNOWN_ISSUES.md: All blockers documented
@@ -54,8 +51,8 @@
 - [x] loxboot_format_state() public provisioning API
 - [x] Fresh flash auto-recovery in loxboot_run()
 - [x] E2E simulator (tools/loxboot_sim.c) in CTest
-- [x] Python E2E test suite: 34/34 pass
-- [x] Hardware E2E on ESP32-S3: 12/12 pass
+- [x] Python E2E test suite runs in CTest
+- [ ] Hardware E2E on ESP32-S3: NOT VERIFIED locally
 - [x] ESP32-S3 IDF project (idf_project/)
 - [x] Release workflow with Windows MSVC .lib artifact
 - [x] Usage examples (examples/)
@@ -89,13 +86,14 @@
 
 ## Status Summary
 
-**This is a hardened, well-tested bootloader core.**
+**This repository remains NOT PRODUCTION READY.**
 
 Not a release candidate (hardware validation required), but:
-- All automated tests pass
+- Local automated tests pass in this workspace (15/15 CTest binaries)
 - All identified bugs fixed
 - Code is clean and compilable
 - Protocol is documented
-- Ready for hardware integration
+- GitHub Actions: NOT RUN / unavailable locally
+- Hardware validation remains incomplete.
 
 **Next step:** Validate on real STM32 or ESP32 with appropriate HAL/IDF.

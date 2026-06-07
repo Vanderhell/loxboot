@@ -336,7 +336,8 @@ loxboot_err_t loxboot_uart_run_session(loxboot_uart_session_t *session)
                 uint32_t offset = (uint32_t)(payload_buf[0] | (payload_buf[1] << 8) | (payload_buf[2] << 16) | (payload_buf[3] << 24));
                 uint16_t write_len = (uint16_t)(pl_len - 4u);
 
-                if (offset + write_len > ctx->platform.slot_size) {
+                if (write_len > ctx->platform.slot_size ||
+                    offset > (ctx->platform.slot_size - write_len)) {
                     response_code = LOXBOOT_UART_RSP_ERROR;
                     response_payload[0] = (uint8_t)LOXBOOT_ERR_INVALID_ARG;
                     response_payload_len = 1u;

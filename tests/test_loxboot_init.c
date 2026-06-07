@@ -114,6 +114,31 @@ static void test_overlapping_slots(void)
     CHECK_EQ_INT(loxboot_init(&ctx), LOXBOOT_ERR_INVALID_ARG);
 }
 
+static void test_adjacent_slots_allowed(void)
+{
+    test_flash_t flash;
+    test_fatal_t fatal;
+    loxboot_t ctx;
+
+    test_flash_reset(&flash);
+    test_make_valid_ctx(&ctx, &flash, &fatal);
+    ctx.platform.slot_b_base = ctx.platform.slot_a_base + ctx.platform.slot_size;
+    CHECK_EQ_INT(loxboot_init(&ctx), LOXBOOT_OK);
+}
+
+static void test_overflowing_slot_range_rejected(void)
+{
+    test_flash_t flash;
+    test_fatal_t fatal;
+    loxboot_t ctx;
+
+    test_flash_reset(&flash);
+    test_make_valid_ctx(&ctx, &flash, &fatal);
+    ctx.platform.slot_a_base = 0xFFFFFFF0u;
+    ctx.platform.slot_size = 0x20u;
+    CHECK_EQ_INT(loxboot_init(&ctx), LOXBOOT_ERR_INVALID_ARG);
+}
+
 static void test_overlapping_state_copies(void)
 {
     test_flash_t flash;
@@ -248,6 +273,8 @@ int main(void)
     run_test("init/duplicate_slot_bases", test_duplicate_slot_bases);
     run_test("init/duplicate_state_bases", test_duplicate_state_bases);
     run_test("init/overlapping_slots", test_overlapping_slots);
+    run_test("init/adjacent_slots_allowed", test_adjacent_slots_allowed);
+    run_test("init/overflowing_slot_range_rejected", test_overflowing_slot_range_rejected);
     run_test("init/overlapping_state_copies", test_overlapping_state_copies);
     run_test("init/state_overlaps_slot", test_state_overlaps_slot);
 
@@ -261,4 +288,3 @@ int main(void)
     (void)printf("passed=%d failed=%d\n", g_test_passed, g_test_failed);
     return (g_test_failed > 0) ? 1 : 0;
 }
-

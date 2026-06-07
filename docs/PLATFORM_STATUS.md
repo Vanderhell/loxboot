@@ -2,160 +2,113 @@
 
 ## Summary
 
-| Platform       | Core | UART    | Adapter      | Handoff           | Status                         |
-|----------------|------|---------|--------------|-------------------|--------------------------------|
-| Host (tests)   | ✅   | ✅      | ✅ (stubs)   | ✅ (stub-tested)  | VERIFIED (host only)           |
-| ARM Cortex-M   | ✅   | ✅      | ⚠️ (no HAL) | ⚠️ (not HW tested)| NOT HARDWARE VERIFIED          |
-| STM32          | ✅   | ✅      | ⚠️ (stub)   | ⚠️ (not HW tested)| NOT HARDWARE VERIFIED          |
-| ESP32-S3       | ✅   | ✅      | ✅ (IDF)    | ⚠️ (UART only)    | UART PROTOCOL VERIFIED (partial)|
-| Xtensa/ESP8266 | ✅   | ✅      | ❌           | ❌                | NO ADAPTER                     |
-| RISC-V         | ✅   | ✅      | ❌           | ❌                | NO ADAPTER                     |
+| Platform | Core | UART | Adapter | Handoff | Status |
+|---|---|---|---|---|---|
+| Host (tests) | ✅ | ✅ | ✅ (stubs) | ✅ (stub-tested) | VERIFIED LOCALLY |
+| ARM Cortex-M | ✅ | ✅ | ⚠️ (no HAL) | ⚠️ (not HW tested) | NOT HARDWARE VERIFIED |
+| STM32 | ✅ | ✅ | ⚠️ (stub) | ⚠️ (not HW tested) | NOT HARDWARE VERIFIED |
+| ESP32-S3 | ✅ | ✅ | ✅ (IDF) | ⚠️ (UART only) | NOT VERIFIED LOCALLY |
+| Xtensa/ESP8266 | ✅ | ✅ | ⛔ | ⛔ | NO ADAPTER |
+| RISC-V | ✅ | ✅ | ⛔ | ⛔ | NO ADAPTER |
 
-**Legend:** ✅ verified  ⚠️ implemented, not hardware-validated  ❌ not implemented
-
----
-
-## Host (Automated Testing) ✅
-
-**Status:** Verified  
-**Tests:** 414/414 assertions, 15 CTest binaries, 0 failures  
-**Compiler:** MSVC verified zero warnings; GCC/Clang flags configured
-
-**Coverage (15 test binaries, MSVC local):**
-- Boot sequence: 17 (test_loxboot_boot_sequence)
-- State management: 132 (test_loxboot_state_edges)
-- UART frame: 43 (test_loxboot_uart_frame)
-- UART session: 43 (test_loxboot_uart_receive)
-- Slot operations: 25 (test_loxboot_invalidate_slot)
-- Init/CRC/rollback/format: 37+ (test_loxboot_init)
-- Misc slot control: 74
-- ESP32 platform (stubs): 15 (test_loxboot_esp32_platform)
-- E2E simulator: 34 (loxboot_e2e via Python)
-
-**NOT verified:**
-- GCC / Clang CI run (requires GitHub Actions push)
-- ASAN / UBSAN run
-- ARM cross-compile smoke test (CMake only, no execution)
+**Legend:** ✅ verified locally, ⚠️ implemented but not hardware-validated, ⛔ not implemented.
 
 ---
 
-## ARM Cortex-M ⚠️
+## Host Verification
 
-**Status:** Code present. Jump mechanism implemented. **NOT hardware validated.**
+**Status:** Verified locally in this workspace
 
-**What works on host:**
-- Boot sequence logic (all test assertions pass)
-- UART protocol (all assertions pass)
-- State management (all assertions pass)
+**Tests:** 15/15 CTest binaries, 0 failures
 
-**What requires hardware:**
-- `loxboot_jump_to_app()` on real ARM board (MSP setup, Thumb bit, vector table)
-- STM32 HAL flash operations (requires vendor stm32_hal.h)
+**Build:** MSBuild Debug configuration passed in this workspace
+
+**Not verified locally:**
+- GitHub Actions
+- GCC/Clang runs
+- ASAN/UBSAN
+- ARM cross-compile execution
+
+---
+
+## ARM Cortex-M
+
+**Status:** Code present. Hardware jump behavior is not verified locally.
+
+**What is covered locally:**
+- Boot sequence logic
+- UART protocol
+- State management
+
+**Not verified locally:**
+- `loxboot_jump_to_app()` on a real ARM board
+- STM32 HAL flash operations on real hardware
 - Power-loss scenarios
 
 ---
 
-## STM32 (Internal Flash) ⚠️
+## STM32
 
-**Status:** Adapter code present. Compiles with vendor-provided stub headers. **NOT hardware validated.**
+**Status:** Adapter code present. Stub compilation passed locally; hardware validation did not run in this task.
 
-**⚠️ Critical layout requirement:**
-Each boot state copy must occupy its own erase page/sector exclusively.
-See docs/PORTING.md — Boot state region isolation.
-
-**What the adapter implements:**
+**Adapter behavior in code:**
 - Flash read: memory-mapped direct pointer
 - Flash write: 8-byte chunks via `HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD)`
-- Flash erase: rounded up to `FLASH_PAGE_SIZE` boundary
+- Flash erase: rounded up to `FLASH_PAGE_SIZE`
 
-**Not verified:**
-- Real STM32 HAL (vendor stm32_hal.h required)
-- Flash page size (varies by STM32 variant)
+**Not verified locally:**
+- Real STM32 HAL
+- Flash page size by variant
 - Dual-bank behavior
 - Power-loss recovery
 
 ---
 
-## ESP32-S3 ⚠️ (partial)
+## ESP32-S3
 
-**Status:** UART protocol verified on hardware. Full OTA boot cycle NOT verified.
+**Status:** Local stub tests passed. Hardware UART/OTA behavior was not verified locally in this task.
 
-**Verified on ESP32-S3 DevKit (USB Serial JTAG, IDF v5.5.1):**
-- IDF project builds: `idf.py build` → `loxboot_esp32.bin` ✅
-- Boot from fresh flash (auto-init state) ✅
-- UART listen window active after boot ✅
-- HELLO → RSP_STATUS ✅
-- WRITE before HELLO → RSP_ERROR ✅
-- Corrupt frame (bad CRC) → RSP_ERROR ✅
-- COMMIT size mismatch → RSP_ERROR ✅
-- STATUS command ✅
-- HELLO → WRITE → COMMIT → REBOOT ✅
-- slot_b = PENDING after COMMIT ✅
-- Device reboots and comes back for next update ✅
-- **Hardware E2E: 12/12 assertions pass**
+**Stub coverage in this workspace:**
+- `loxboot_esp32_handoff()`
+- `loxboot_esp32_confirm_running_app()`
+- `loxboot_esp32_sync_state_from_ota()`
+- `test_loxboot_esp32_platform`
 
-**Platform handoff (stub-tested, not hardware-tested):**
-- `loxboot_esp32_handoff()`: maps SLOT_A → ota_0, SLOT_B → ota_1
-- Calls `esp_ota_set_boot_partition()` + `esp_restart()`
-- `loxboot_esp32_confirm_running_app()`: marks valid only for PENDING_VERIFY
-- `loxboot_esp32_sync_state_from_ota()`: maps IDF OTA state to loxboot state
-- **Stub tests: 15/15 assertions pass (no ESP-IDF required)**
-
-**NOT verified on hardware:**
-- Full OTA boot cycle: UART update → slot PENDING → handoff → IDF bootloader loads ota_1
-- App self-test + `esp_ota_mark_app_valid_cancel_rollback()`
-- Automatic rollback (bad image → IDF bootloader restores previous)
+**Not verified locally:**
+- Full OTA boot cycle
+- App rollback behavior on a real device
 - Power-loss during update
-- `loxboot_esp32_confirm_running_app()` on real device
-- `loxboot_esp32_sync_state_from_ota()` on real device
-
-**Required for production ESP32:**
-- [ ] OTA update boot cycle smoke test (8 steps from design doc)
-- [ ] Rollback test (bad image → confirm rollback)
-- [ ] `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y` in sdkconfig
-- [ ] otadata partition in partitions.csv
-
----
-
-## Xtensa (ESP8266) ❌
-
-No adapter. Different SDK from ESP32, separate partition API.
-
----
-
-## RISC-V ❌
-
-No adapter or jump mechanism. External contribution needed.
+- `esp_ota_mark_app_valid_cancel_rollback()` on real hardware
 
 ---
 
 ## Build Status
 
-| Target         | Status | Evidence                                    |
-|----------------|--------|---------------------------------------------|
-| Host MSVC      | ✅     | 414 assertions, 0 failures (local)          |
-| Host GCC       | ⚠️    | Flags configured, CI not run yet            |
-| Host Clang     | ⚠️    | Flags configured, CI not run yet            |
-| ARM cross      | ⚠️    | CMake toolchain configured, no exec test    |
-| ESP32-S3 IDF   | ✅     | `idf.py build` → loxboot_esp32.bin (local) |
-| STM32 stub     | ⚠️    | Compiles with stubs, not in CI              |
-| ESP32 stub     | ✅     | Compiles + 15 stub tests pass               |
+| Target | Status | Evidence |
+|---|---|---|
+| Host MSVC | ✅ | 15/15 CTest binaries, 0 failures |
+| Host GCC | ⚠️ | Flags configured, not run locally |
+| Host Clang | ⚠️ | Flags configured, not run locally |
+| ARM cross | ⚠️ | CMake toolchain configured, not executed |
+| ESP32-S3 IDF | ⚠️ | Not verified locally in this task |
+| STM32 stub | ✅ | Stub build passed locally |
+| ESP32 stub | ✅ | Local stub tests passed |
 
-**CI status: NOT RUN** — requires `git push origin master && git push origin v0.7.0`
+**GitHub Actions: NOT RUN / unavailable locally**
 
 ---
 
-## What is verified vs. what is claimed
+## Verified vs. Not Verified
 
-| Claim                              | Verified by                       | Status  |
-|------------------------------------|-----------------------------------|---------|
-| Core boot sequence logic correct   | 17 host assertions                | ✅      |
-| UART protocol correct              | 43+43+34 host assertions          | ✅      |
-| CRC16/CRC32 correct                | Known-vector tests                | ✅      |
-| ESP32 UART protocol                | 12 hardware assertions (ESP32-S3) | ✅      |
-| ESP32 OTA handoff logic            | 15 stub assertions                | ⚠️     |
-| Full ESP32 OTA boot cycle          | Not tested                        | ❌      |
-| STM32 flash operations             | Not tested                        | ❌      |
-| ARM jump mechanism                 | Not tested                        | ❌      |
-| GCC/Clang CI                       | Not run                           | ❌      |
-| ASAN/UBSAN                         | Not run                           | ❌      |
+| Claim | Local evidence | Status |
+|---|---|---|
+| Core boot sequence logic | 15/15 CTest binaries | ✅ |
+| UART protocol logic | 15/15 CTest binaries | ✅ |
+| CRC16/CRC32 code paths | Known-vector tests in repo | ✅ |
+| ESP32 UART protocol | Not verified locally | ⚠️ |
+| ESP32 OTA handoff logic | Stub tests only | ⚠️ |
+| Full ESP32 OTA boot cycle | Not tested locally | ⛔ |
+| STM32 flash operations | Not tested locally | ⛔ |
+| ARM jump mechanism | Not tested locally | ⛔ |
+| GitHub Actions | NOT RUN / unavailable locally | ⛔ |
+| ASAN/UBSAN | Not run locally | ⛔ |

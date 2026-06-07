@@ -164,6 +164,38 @@ static void test_state_validation_crc_mismatch_rejected(void)
     CHECK_EQ_INT(loxboot_state_read(&ctx, &out), LOXBOOT_ERR_RECORD_CORRUPT);
 }
 
+static void test_state_validation_active_slot_values(void)
+{
+    test_flash_t flash;
+    test_fatal_t fatal;
+    loxboot_t ctx;
+    loxboot_state_t st;
+    loxboot_state_t out;
+
+    test_flash_reset(&flash);
+    test_make_valid_ctx(&ctx, &flash, &fatal);
+    CHECK_EQ_INT(loxboot_init(&ctx), LOXBOOT_OK);
+
+    test_build_default_state(&st, LOXBOOT_SLOT_A);
+    write_copy(&flash, ctx.platform.boot_state_primary_base, &st);
+    write_copy(&flash, ctx.platform.boot_state_backup_base, &st);
+    CHECK_EQ_INT(loxboot_state_read(&ctx, &out), LOXBOOT_OK);
+    CHECK_EQ_INT(out.active_slot, (int)LOXBOOT_SLOT_A);
+
+    test_build_default_state(&st, LOXBOOT_SLOT_B);
+    write_copy(&flash, ctx.platform.boot_state_primary_base, &st);
+    write_copy(&flash, ctx.platform.boot_state_backup_base, &st);
+    CHECK_EQ_INT(loxboot_state_read(&ctx, &out), LOXBOOT_OK);
+    CHECK_EQ_INT(out.active_slot, (int)LOXBOOT_SLOT_B);
+
+    test_build_default_state(&st, LOXBOOT_SLOT_A);
+    st.active_slot = 0xFFu;
+    st.state_crc32 = state_crc32(&st);
+    write_copy(&flash, ctx.platform.boot_state_primary_base, &st);
+    write_copy(&flash, ctx.platform.boot_state_backup_base, &st);
+    CHECK_EQ_INT(loxboot_state_read(&ctx, &out), LOXBOOT_ERR_RECORD_CORRUPT);
+}
+
 static void test_slot_record_validation_rejections(void)
 {
     test_flash_t flash;
@@ -297,6 +329,8 @@ int main(void)
              test_state_validation_magic_mismatch_rejected);
     run_test("state_edges/state_validation_crc_mismatch_rejected",
              test_state_validation_crc_mismatch_rejected);
+    run_test("state_edges/state_validation_active_slot_values",
+             test_state_validation_active_slot_values);
     run_test("state_edges/slot_record_validation_rejections",
              test_slot_record_validation_rejections);
     run_test("state_edges/state_write_failure_propagation_and_partial_write_behavior",

@@ -544,6 +544,79 @@ static void test_uart_write_out_of_bounds(void)
     CHECK(mock_t.tx_len > 0u);
 }
 
+/* Test: WRITE offset + length overflow is rejected before wrapping */
+static void test_uart_write_offset_overflow_rejected(void)
+{
+    test_flash_t flash;
+    test_fatal_t fatal;
+    loxboot_t ctx;
+    mock_transport_t mock_t;
+    loxboot_state_t state;
+
+    test_flash_reset(&flash);
+    test_make_valid_ctx(&ctx, &flash, &fatal);
+    test_build_default_state(&state, LOXBOOT_SLOT_A);
+    test_seed_state(&flash, &ctx.platform, &state);
+    loxboot_init(&ctx);
+
+    memset(&mock_t, 0, sizeof(mock_t));
+
+    mock_queue_frame(&mock_t, LOXBOOT_UART_CMD_HELLO, NULL, 0u);
+
+    uint8_t write_payload[36] = {
+        0xF0, 0xFF, 0xFF, 0xFF,
+        0xAA, 0xBB, 0xCC, 0xDD,
+        0x11, 0x22, 0x33, 0x44,
+        0x55, 0x66, 0x77, 0x88,
+        0x99, 0xAA, 0xBB, 0xCC,
+        0xDD, 0xEE, 0x10, 0x11,
+        0x12, 0x13, 0x14, 0x15,
+        0x16, 0x17, 0x18, 0x19,
+        0x1A, 0x1B, 0x1C, 0x1D
+    };
+    mock_queue_frame(&mock_t, LOXBOOT_UART_CMD_WRITE, write_payload, sizeof(write_payload));
+
+    loxboot_transport_adapter_t transport;
+    transport.ctx = &mock_t;
+    transport.read_byte = mock_read_byte;
+    transport.write_byte = mock_write_byte;
+    transport.flush = mock_flush;
+    ctx.transport = transport;
+
+    loxboot_clock_adapter_t clock;
+    clock.ctx = NULL;
+    clock.now_ms = mock_clock_now;
+    ctx.clock = clock;
+
+    loxboot_uart_session_t session;
+    memset(&session, 0, sizeof(session));
+    session.boot = &ctx;
+    session.listen_ms = 200u;
+
+    loxboot_uart_run_session(&session);
+
+    CHECK(mock_t.tx_len > 0u);
+
+    uint8_t cmd = 0u;
+    uint8_t payload[8] = {0};
+    uint16_t payload_len = 0u;
+
+    CHECK_EQ_INT(loxboot_uart_frame_decode(mock_t.tx_buf, mock_t.tx_len, &cmd, payload, &payload_len), LOXBOOT_OK);
+    CHECK_EQ_INT(cmd, LOXBOOT_UART_RSP_STATUS);
+
+    size_t first_frame_len = (size_t)(1u + 1u + 1u + 1u + payload_len + 2u);
+    CHECK(first_frame_len < mock_t.tx_len);
+
+    CHECK_EQ_INT(loxboot_uart_frame_decode(&mock_t.tx_buf[first_frame_len],
+                                           mock_t.tx_len - first_frame_len,
+                                           &cmd,
+                                           payload,
+                                           &payload_len),
+                 LOXBOOT_OK);
+    CHECK_EQ_INT(cmd, LOXBOOT_UART_RSP_ERROR);
+    CHECK_EQ_INT(payload[0], LOXBOOT_ERR_INVALID_ARG);
+}
+
 /* Test: ABORT invalidates target slot */
 static void test_uart_abort_invalidates_slot(void)
 {
@@ -767,6 +840,7 @@ int main(void)
     run_test("uart_hello_returns_status", test_uart_hello_returns_status);
     run_test("uart_commit_before_write_rejected", test_uart_commit_before_write_rejected);
     run_test("uart_write_out_of_bounds", test_uart_write_out_of_bounds);
+    run_test("uart_write_offset_overflow_rejected", test_uart_write_offset_overflow_rejected);
 
     run_test("uart_abort_invalidates_slot", test_uart_abort_invalidates_slot);
     run_test("uart_write_byte_failure", test_uart_write_byte_failure);

@@ -83,7 +83,7 @@ static void test_rejects_invalid_active_slot(void)
     st.state_crc32 = state_crc32(&st);
     test_seed_state(&flash, &ctx.platform, &st);
 
-    CHECK_EQ_INT(loxboot_confirm_boot(&ctx), LOXBOOT_ERR_INVALID_STATE);
+    CHECK_EQ_INT(loxboot_confirm_boot(&ctx), LOXBOOT_ERR_RECORD_CORRUPT);
 }
 
 static void test_rejects_uninitialized_ctx(void)
@@ -133,4 +133,3 @@ int main(void)
     (void)printf("passed=%d failed=%d\n", g_test_passed, g_test_failed);
     return (g_test_failed > 0) ? 1 : 0;
 }
-

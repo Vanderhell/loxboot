@@ -59,6 +59,18 @@ extern "C" {
 #define LOXBOOT_UART_MAX_FRAME_PAYLOAD 1024
 #endif
 
+/**
+ * Firmware verification chunk size in bytes.
+ * Kept modest to avoid large stack allocations during firmware CRC checks.
+ */
+#ifndef LOXBOOT_FW_VERIFY_CHUNK_SIZE
+#define LOXBOOT_FW_VERIFY_CHUNK_SIZE 512u
+#endif
+
+#if LOXBOOT_FW_VERIFY_CHUNK_SIZE == 0u
+#error "LOXBOOT_FW_VERIFY_CHUNK_SIZE must be greater than zero"
+#endif
+
 /* =========================================================================
  * Magic values
  * ====================================================================== */
@@ -223,8 +235,10 @@ typedef struct {
  *   RISC-V:       platform-defined entry point jump
  *
  * If handoff is NULL, loxboot falls back to the built-in ARM Cortex-M
- * vector-table jump. This default is intentionally broken on non-ARM
- * architectures — platforms MUST provide a handoff implementation.
+ * vector-table jump. Non-ARM builds must provide a handoff implementation;
+ * otherwise loxboot_run() fails safely instead of attempting a raw jump.
+ * In LOXBOOT_TEST_HOOKS builds, a registered jump hook intercepts the
+ * default path during tests.
  *
  * handoff MUST NOT RETURN on success. If it returns, loxboot calls on_fatal.
  */
@@ -280,7 +294,7 @@ typedef struct {
     loxboot_transport_adapter_t transport;
     loxboot_hal_t               hal;
     loxboot_platform_t          platform;
-    loxboot_platform_ops_t      platform_ops; /**< Handoff ops — NULL = ARM Cortex-M default */
+    loxboot_platform_ops_t      platform_ops; /**< Handoff ops — NULL = ARM default; non-ARM must override */
 
     /* Runtime state — populated by loxboot_run(), read-only after */
     loxboot_state_t             state;        /**< Current boot state (in-RAM copy) */
