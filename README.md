@@ -129,6 +129,11 @@ loxboot_confirm_boot(&ctx);  /* Resets crash counter */
 cmake -S . -B build
 ```
 
+Full local test profile:
+```bash
+cmake -S . -B build -DLOXBOOT_BUILD_UART_PORT=ON
+```
+
 Optional flags:
 ```bash
 -DLOXBOOT_BUILD_UART_PORT=ON          # Include UART transport
@@ -165,7 +170,7 @@ ctest --test-dir build -C Debug --output-on-failure
 
 ## Test Coverage
 
-**Local test coverage:** `15/15` CTest binaries passing in this workspace.
+**Local test coverage:** `15/15` CTest binaries passing in this workspace with `-DLOXBOOT_BUILD_UART_PORT=ON`.
 
 - Boot sequence
 - State management

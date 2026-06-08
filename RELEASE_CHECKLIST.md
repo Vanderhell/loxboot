@@ -1,7 +1,7 @@
 # v0.7.0 Status
 
 ## Code Quality ✅
-- [x] 15/15 CTest binaries passing in this workspace
+- [x] 15/15 CTest binaries passing in this workspace with `-DLOXBOOT_BUILD_UART_PORT=ON`
 - [x] MSVC Debug build passed under the existing `/W4 /WX` settings
 - [x] GCC/Clang flags configured (`-Wall -Wextra -Wpedantic -Werror`, `CMakeLists.txt`)
 - [x] C99 only, no external dependencies
@@ -27,7 +27,7 @@
 - [x] All slot state transitions tested
 
 ## Test Coverage ✅ (local verification)
-- [x] 15/15 CTest binaries passing in this workspace
+- [x] 15/15 CTest binaries passing in this workspace with `-DLOXBOOT_BUILD_UART_PORT=ON`
 - [x] Boot sequence, state management, UART frame/session, slot operations, init/CRC/rollback
 - [x] ESP32 platform stub tests
 - [ ] Hardware adapter validation: not verified locally (requires real HAL/IDF)
@@ -89,7 +89,7 @@
 **This repository remains NOT PRODUCTION READY.**
 
 Not a release candidate (hardware validation required), but:
-- Local automated tests pass in this workspace (15/15 CTest binaries)
+- Local automated tests pass in this workspace (15/15 CTest binaries with `-DLOXBOOT_BUILD_UART_PORT=ON`)
 - All identified bugs fixed
 - Code is clean and compilable
 - Protocol is documented

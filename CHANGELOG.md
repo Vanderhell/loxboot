@@ -28,6 +28,7 @@ All notable changes to loxboot are documented in this file.
 - `KNOWN_ISSUES.md`, `docs/PROTOCOL_UART.md`, `docs/PLATFORM_STATUS.md`, `RELEASE_CHECKLIST.md`, `EVIDENCE_MATRIX.md` updated in the repository.
 
 ### Local Verification in This Workspace
+- Full local test profile: `cmake -S . -B build -DLOXBOOT_BUILD_UART_PORT=ON`
 - `cmake -S . -B build`
 - `cmake --build build`
 - `ctest --test-dir build -C Debug --output-on-failure`

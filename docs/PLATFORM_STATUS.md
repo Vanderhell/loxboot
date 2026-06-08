@@ -21,6 +21,8 @@
 
 **Tests:** 15/15 CTest binaries, 0 failures
 
+**Full local test profile:** `cmake -S . -B build -DLOXBOOT_BUILD_UART_PORT=ON`
+
 **Build:** MSBuild Debug configuration passed in this workspace
 
 **Not verified locally:**

@@ -54,8 +54,8 @@ This matrix tracks the requirements that are backed by code in this repository a
 
 | Requirement | Evidence | Status |
 |---|---|---|
-| MSVC build | Local `cmake --build build` | ✅ |
-| Local CTest | Local `ctest --test-dir build -C Debug --output-on-failure` | ✅ (`15/15`) |
+| MSVC build | Local `cmake --build build` after `cmake -S . -B build -DLOXBOOT_BUILD_UART_PORT=ON` | ✅ |
+| Local CTest | Local `ctest --test-dir build -C Debug --output-on-failure` after `cmake -S . -B build -DLOXBOOT_BUILD_UART_PORT=ON` | ✅ (`15/15`) |
 | GitHub Actions | Not run locally | ⛔ |
 | Hardware validation | Not verified locally | ⛔ |
 
