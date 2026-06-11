@@ -1,195 +1,136 @@
-# Known Issues & Limitations
+# Known Issues and Limitations
 
-## Critical Issues (Require Resolution)
+This file only lists unresolved items. Do not remove an item unless the fix is implemented and tested.
 
-### 1. Erase Granularity Mismatch
-**Status:** Documented, requires platform-specific handling  
-**Impact:** Boot state corruption on platforms with large flash sectors
+## Current blockers
 
-**Description:**
-- Core assumes arbitrary-size erase: `ctx->flash.erase(ctx, base, 52u)` for boot state
-- STM32 enforces sector-aligned erase (e.g., 2KB per page)
-- ESP32 enforces 4KB-aligned erase (partition-level granularity)
+- GitHub Actions was not run in this task
+- GitHub Release was not verified in this task
+- ESP32-S3 hardware evidence is missing in this task
+- STM32 hardware verification is missing
+- power-loss during erase/write/state-write is not fully verified
+- UART retry/resume support is missing
+- firmware signing is missing
 
-**Current behavior:**
-- Core writes boot state (52 bytes) to flash
-- Adapter must round up erase size to sector boundary (example: 2KB on STM32, 4KB on ESP32)
-- This may corrupt neighboring data if slots aren't properly spaced
+## Critical issues
 
-**Resolution required:**
-1. **Option A (API change):** Add `erase_granularity` to platform configuration
-   - Core calls `ctx->flash.erase(ctx, base, ctx->platform.erase_alignment(52u))`
-   - Adapters implement granularity rounding
-   
-2. **Option B (Adapter workaround):** Allocate full sector for boot state in layout
-   - Memory layout: Boot state primary (2KB), Backup (2KB), Slot A (256KB), Slot B (256KB)
-   - Guarantees no data corruption from erase
+### 1. Erase granularity mismatch
 
-**Recommended:** Option B for v0.6.0 (no API change), plan Option A for v1.0
+Status: documented, still requires platform-specific handling
 
----
+Impact: boot state corruption can occur on platforms with large flash sectors if the adapter does not round the erase range correctly.
 
-## Important Limitations (Hardware/Test Gaps)
+Current behavior:
+- core writes boot state records that are much smaller than a flash erase sector
+- adapters must erase full sectors or pages as required by the platform
+- slot and state layout must avoid overlapping any adjacent data
 
-### 2. ARM Cortex-M Jump Mechanism
-**Status:** Code complete, hardware validation pending  
-**Impact:** Device cannot boot application after update
+Resolution options:
+1. API change: add erase granularity to platform configuration
+2. Adapter workaround: allocate a full sector for each boot-state copy
 
-**What works:**
-- Jump routine `loxboot_jump_to_app()` implemented in core
-- Stack pointer initialization verified in code
-- Interrupt disable before jump implemented
+Recommended for the current release line: adapter-side sector allocation or equivalent platform-owned layout
 
-**What requires testing:**
-- Real STM32/ARM hardware execution
-- Interrupt masking actually prevents execution before jump
-- Entry point alignment and memory layout assumptions
-- Xtensa/RISC-V platforms: no implementation yet
+### 2. ARM Cortex-M jump mechanism
 
-**Test required:** Hardware boot on real STM32 board
+Status: code present, hardware validation pending
 
----
+Impact: device may not jump into the application correctly on real hardware.
 
-### 3. Power-Loss Recovery
-**Status:** Mock tests exist, real hardware scenarios untested  
-**Impact:** Data corruption or unbootable device if power lost during update
+What works in code:
+- jump routine exists
+- stack pointer initialization is implemented
+- interrupts are disabled before the jump
 
-**Scenarios covered in code:**
-- Dual-copy state recovery on CRC mismatch
-- Rollback on firmware CRC fail
+What still needs hardware evidence:
+- real STM32 or other ARM board execution
+- interrupt masking in hardware
+- entry point alignment and memory layout assumptions
 
-**Scenarios NOT tested:**
-- Power loss during slot erase (partial erase)
-- Power loss during firmware write (mid-chunk)
-- Power loss during boot state write
-- Interrupt during state write
-- Flash corruption patterns from mid-erase
-- Recovery from corrupted boot state on boot
+### 3. Power-loss recovery
 
-**Test required:** Lab equipment with power injection + capture
+Status: mocked behavior exists, real hardware scenarios are unverified
 
----
+Impact: data corruption or an unbootable device may occur if power is lost during update.
 
-### 4. Flash Adapter Integration
-**Status:** Stubbed for Windows build, real hardware untested  
-**Impact:** Core UART protocol works, but can't actually write firmware to device
+Scenarios not fully verified:
+- power loss during slot erase
+- power loss during firmware write
+- power loss during boot-state write
+- interrupt during state write
+- mid-erase corruption patterns
+- recovery from corrupted boot state on boot
 
-**STM32 Adapter:**
-- Code present, cast issue fixed
-- Requires real `stm32_hal.h` (user provides)
-- Flash page size varies by variant (needs configuration)
-- Dual-bank behavior on some STM32s not handled
+### 4. Flash adapter integration
 
-**ESP32 Adapter:**
-- Code present
-- Requires `esp_partition.h` from ESP-IDF
-- Partition table must be configured by user
-- OTA partition layout must match slot definitions
+Status: stubbed for host builds, real hardware untested
 
-**Test required:** Real hardware with vendor HAL/IDF
+STM32 adapter:
+- code is present
+- real HAL integration is not verified
+- flash page size varies by variant
 
----
+ESP32 adapter:
+- code is present
+- ESP-IDF integration is not hardware verified
+- partition table must match slot definitions
 
-### 5. UART Frame Loss & Corruption
-**Status:** Timeout-based recovery, no retry mechanism  
-**Impact:** Long transfers may fail silently
+### 5. UART frame loss and corruption
 
-**Current implementation:**
-- Per-byte timeout: waits for next byte or aborts
-- No frame retry: if frame rejected, update must start over
-- No checksum verification beyond CRC16
+Status: timeout-based recovery only
 
-**Limitations:**
-- Single corrupted byte fails entire frame
-- Noisy serial lines may cause frequent retries
-- Large firmware files (1MB+) on slow UART (9600 baud) risk timeout
+Current behavior:
+- per-byte timeout aborts a frame
+- no retry mechanism is implemented
+- corrupted frames must be retransmitted by restarting the transfer
 
-**Recommendation:** Implement UART retry mechanism for production
+Limitation:
+- this is not production-grade retry/resume support
+- noisy serial lines can still force the host to restart the transfer
 
----
+## Documentation gaps
 
-## Documentation Gaps
+### 6. Memory layout examples
 
-### 6. Memory Layout Requirements
-**Missing:** Hardware-specific memory layout templates
+Status: documented, but still incomplete for some boards
 
-**Required per platform:**
-- Flash sector size
-- Boot state allocation (must fit in one sector)
-- Slot A location & size
-- Slot B location & size
-- Linker script for application partition
+### 7. CRC32 assumptions
 
-**Status:** MEMORY_LAYOUT.md exists but lacks STM32/ESP32 examples
+Status: current implementation uses flash reads in chunks; platform-specific tuning may still be needed
 
----
+## Future improvements
 
-### 7. CRC32 Verification Assumptions
-**Status:** Assumes 4KB chunks sufficient for all platforms
+### 8. Signed firmware updates
 
-**Description:**
-- Core reads firmware via 4KB chunks to verify CRC32
-- Some platforms may have memory-mapped flash (no chunking needed)
-- Some platforms may require smaller chunks for cache efficiency
+Status: missing
 
-**Impact:** Performance on platforms with non-standard memory models
+Current verification only detects accidental corruption. It does not prove authenticity.
 
----
+## Test matrix status
 
-## Future Improvements
+| Scenario | Mock test | Hardware test | Status |
+|---|---|---|---|
+| Boot from A | yes | no | ready for hardware |
+| Boot from B | yes | no | ready for hardware |
+| Update A to B | yes | no | ready for hardware |
+| Update B to A | yes | no | ready for hardware |
+| Rollback on CRC | yes | no | ready for hardware |
+| Crash loop auto-rollback | yes | no | ready for hardware |
+| Dual-copy recovery | yes | no | ready for hardware |
+| Power loss during erase | no | no | missing |
+| Power loss during write | no | no | missing |
+| Partial frame loss | yes | no | ready for hardware |
+| UART timeout | yes | no | ready for hardware |
+| NULL adapter callbacks | yes | n/a | complete |
 
-### 8. Rollback to N-2 Slots
-**Current:** Only A/B (2-copy) rollback  
-**Requested:** A/B/C for longer history
+## Verification checklist before production
 
-**Impact:** Less aggressive about using new firmware if kernel issues suspected
-
----
-
-### 9. Recovery Mode (UART without Boot)
-**Current:** UART only listens during boot sequence  
-**Requested:** Always-available recovery mode with hardware button
-
-**Impact:** Can fix bricked devices without JTAG
-
----
-
-### 10. Signed Firmware Updates
-**Current:** CRC32 verification only (detects corruption, not tampering)  
-**Missing:** Ed25519 or ECDSA signature validation
-
-**Impact:** Vulnerable to untrusted firmware injection
-
----
-
-## Test Matrix Status
-
-| Scenario | Mock Test | Hardware Test | Status |
-|----------|-----------|---------------|--------|
-| Boot from A | ✅ | ⏳ | Ready for HW |
-| Boot from B | ✅ | ⏳ | Ready for HW |
-| Update A→B | ✅ | ⏳ | Ready for HW |
-| Update B→A | ✅ | ⏳ | Ready for HW |
-| Rollback on CRC | ✅ | ⏳ | Ready for HW |
-| Crash loop auto-rollback | ✅ | ⏳ | Ready for HW |
-| Dual-copy recovery | ✅ | ⏳ | Ready for HW |
-| Power loss (erase) | ❌ | ⏳ | **MISSING** |
-| Power loss (write) | ❌ | ⏳ | **MISSING** |
-| Partial frame loss | ✅ | ⏳ | Ready for HW |
-| UART timeout | ✅ | ⏳ | Ready for HW |
-| NULL adapter callbacks | ✅ | N/A | Complete |
-
----
-
-## Verification Checklist Before Production
-
-- [ ] Hardware: Flash erase/write/read verified on target
-- [ ] Hardware: Jump to app works on real board
-- [ ] Hardware: Power loss scenarios tested in lab
-- [ ] Hardware: UART update end-to-end on real serial port
-- [ ] Hardware: Boot reason tracking validates correctly
-- [ ] Security: Firmware signing implemented if needed
-- [ ] Documentation: Platform-specific memory layout documented
-- [ ] Documentation: Adapter implementation guide completed
-- [ ] Testing: All hardware test scenarios passed
-- [ ] Review: Code audit by external security reviewer (optional)
+- [ ] Hardware flash erase/write/read verified on target
+- [ ] Hardware jump to app works on real board
+- [ ] Hardware power-loss scenarios tested in a lab
+- [ ] Hardware UART update end-to-end on real serial port
+- [ ] Hardware boot reason tracking validates correctly
+- [ ] Security: firmware signing implemented if needed
+- [ ] Documentation: platform-specific memory layout documented
+- [ ] Documentation: adapter implementation guide completed
+- [ ] Testing: all hardware test scenarios passed

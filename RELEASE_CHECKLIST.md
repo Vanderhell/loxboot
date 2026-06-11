@@ -1,99 +1,62 @@
-# v0.7.0 Status
+# Release Checklist - loxboot v0.7.x
 
-## Code Quality ✅
-- [x] 15/15 CTest binaries passing in this workspace with `-DLOXBOOT_BUILD_UART_PORT=ON`
-- [x] MSVC Debug build passed under the existing `/W4 /WX` settings
-- [x] GCC/Clang flags configured (`-Wall -Wextra -Wpedantic -Werror`, `CMakeLists.txt`)
-- [x] C99 only, no external dependencies
-- [x] 8 critical bugs fixed: frame validation, session gating, erase timing, NULL checks, adapter headers, uninitialized variables
+This checklist is strict. Do not mark hardware, CI, or release items as complete unless the evidence exists in this repository or in a recorded hardware log.
 
-## UART Protocol ✅
-- [x] Frame encode/decode with CRC16-CCITT
-- [x] Session gating (HELLO required before WRITE/COMMIT/REBOOT)
-- [x] COMMIT validation (firmware_size == _bytes_written)
-- [x] Slot erase on first WRITE (not on session init)
-- [x] NULL pointer validation on all public APIs
-- [x] Error propagation (write_byte, flush failures)
+## Local build/test
 
-## Firmware Verification ✅
-- [x] Incremental CRC32 API (init/update/finalize)
-- [x] Firmware CRC verified via flash.read() (not direct memory)
-- [x] CRC verification works for non-memory-mapped flash
+- [x] `cmake -S . -B build -DLOXBOOT_BUILD_TESTS=ON -DLOXBOOT_BUILD_UART_PORT=ON`
+- [x] `cmake --build build`
+- [x] `ctest --test-dir build -C Debug --output-on-failure`
+- [x] `cmake --build build --config Release`
+- [x] `ctest --test-dir build -C Release --output-on-failure`
+- [ ] `tools/local_verify.py`
+- [x] Local CTest count recorded in `docs/EVIDENCE_MATRIX.md`
 
-## Boot Sequence ✅
-- [x] 8-step loxboot_run() boot sequence
-- [x] Crash loop detection and automatic rollback
-- [x] Dual-copy state read/write/validate with corruption recovery
-- [x] All slot state transitions tested
+## CI
 
-## Test Coverage ✅ (local verification)
-- [x] 15/15 CTest binaries passing in this workspace with `-DLOXBOOT_BUILD_UART_PORT=ON`
-- [x] Boot sequence, state management, UART frame/session, slot operations, init/CRC/rollback
-- [x] ESP32 platform stub tests
-- [ ] Hardware adapter validation: not verified locally (requires real HAL/IDF)
+- [x] GitHub Actions workflow syntax checked
+- [x] `workflow_dispatch` present on CI
+- [ ] GitHub Actions run in this task
 
-## Build Status ✅
-- [x] MSVC: build and CTest passed locally in this workspace
-- [ ] GCC: NOT RUN / unavailable locally
-- [ ] Clang: NOT RUN / unavailable locally
-- [x] LOXBOOT_BUILD_UART_PORT properly wired in CMake
+## Release workflow
 
-## Documentation ✅
-- [x] README: NOT PRODUCTION READY, local verification count consistent
-- [x] API headers: frame_encode/decode, loxboot_format_state() in public API
-- [x] CHANGELOG.md: v0.7.0 entry complete
-- [x] KNOWN_ISSUES.md: All blockers documented
-- [x] docs/PROTOCOL_UART.md: CRC16 and erase timing corrected
-- [x] docs/PLATFORM_STATUS.md: Per-platform guidance
-- [x] docs/TEST_PLAN.md: E2E test status updated
+- [x] Tag-triggered release workflow present
+- [ ] Release workflow validated in GitHub Actions
+- [ ] GitHub Release created and inspected
 
-## New in v0.7.0 ✅
-- [x] loxboot_format_state() public provisioning API
-- [x] Fresh flash auto-recovery in loxboot_run()
-- [x] E2E simulator (tools/loxboot_sim.c) in CTest
-- [x] Python E2E test suite runs in CTest
-- [ ] Hardware E2E on ESP32-S3: NOT VERIFIED locally
-- [x] ESP32-S3 IDF project (idf_project/)
-- [x] Release workflow with Windows MSVC .lib artifact
-- [x] Usage examples (examples/)
-- [x] STM32 + ESP32 erase granularity both fixed
+## Hardware evidence
 
-## Known Limitations ⚠️
-- Slot erase granularity: Core assumes flash can erase arbitrary sizes
-  (STM32/ESP32 adapters may need to round up to sector boundaries)
-- Boot state write: 52 bytes, may trigger platform erase granularity issues
-- Full update flow test: Validates command sequence, not CRC accuracy
-- Adapter tests: Require real hardware (STM32 HAL, ESP32 IDF)
+- [ ] ESP32-S3 OTA E2E log added to `docs/HARDWARE_EVIDENCE.md`
+- [ ] ESP32-S3 corrupt image rejection log added
+- [ ] STM32 adapter hardware log added
+- [ ] ARM Cortex-M jump log added
 
-## Hardware Adapters (Code complete, not tested)
-- [ ] STM32 adapter: Code complete, needs real STM32 + HAL validation
-- [ ] ESP32 adapter: Code complete, needs real ESP32 + IDF validation
-- [ ] Jump mechanism: ARM Cortex-M implementation, needs hardware test
+## Power-loss/disconnect evidence
 
-## What Works ✅
-- Boot sequence on any platform
-- UART protocol implementation
-- Frame-level CRC validation
-- Session state machine
-- All documented in code and tests
+- [ ] Disconnect before HELLO
+- [ ] Disconnect during first WRITE before erase
+- [ ] Disconnect during erase / first WRITE
+- [ ] Disconnect during middle WRITE
+- [ ] Disconnect after all WRITE before COMMIT
+- [ ] Disconnect during COMMIT
+- [ ] Disconnect after COMMIT before REBOOT
+- [ ] Disconnect during reboot
+- [ ] Reconnect and STATUS query
+- [ ] Power-loss fault injection plan executed or implemented
 
-## What Requires Hardware ❌
-- Actual flash erase/write behavior
-- Jump to application code
-- UART serial transmission (tested via mock transport)
-- Power-loss recovery scenarios
-- Real adapter integration
+## Security
 
-## Status Summary
+- [x] Security architecture plan committed
+- [x] CRC32 limitations documented
+- [ ] Firmware signing implementation or explicit non-goal recorded
+- [ ] No hard dependency on `microcrypt` or `microdh` in core
 
-**This repository remains NOT PRODUCTION READY.**
+## Production blockers
 
-Not a release candidate (hardware validation required), but:
-- Local automated tests pass in this workspace (15/15 CTest binaries with `-DLOXBOOT_BUILD_UART_PORT=ON`)
-- All identified bugs fixed
-- Code is clean and compilable
-- Protocol is documented
-- GitHub Actions: NOT RUN / unavailable locally
-- Hardware validation remains incomplete.
-
-**Next step:** Validate on real STM32 or ESP32 with appropriate HAL/IDF.
+- [ ] GitHub Actions remains unverified in this task
+- [ ] GitHub Release remains unverified in this task
+- [ ] ESP32-S3 hardware evidence is present
+- [ ] STM32 hardware evidence is present
+- [ ] Power-loss/disconnect evidence is present
+- [ ] Firmware signing status is resolved for the intended deployment model
+- [ ] Repository still marked `NOT PRODUCTION READY` until all blockers are cleared

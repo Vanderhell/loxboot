@@ -1,95 +1,17 @@
-# Evidence Matrix - v0.7.0 Verification
+# Evidence Matrix
 
-## Overview
-
-This matrix tracks the requirements that are backed by code in this repository and by local test execution in this workspace.
-
----
-
-## Core Boot Sequence
-
-| Requirement | Code | Test evidence | Status |
-|---|---|---|---|
-| `loxboot_run()` boot sequence | `src/loxboot_core.c` | `test_loxboot_boot_sequence.c` | ✅ |
-| Crash loop rollback | `src/loxboot_core.c` | `test_loxboot_crash_loop.c`, `test_loxboot_rollback.c` | ✅ |
-| Confirm boot resets attempts | `src/loxboot_core.c` | `test_loxboot_confirm_boot.c` | ✅ |
-| State validation rejects invalid `active_slot` | `src/loxboot_state.c` | `test_loxboot_state_edges.c` | ✅ |
-
----
-
-## UART Transport
-
-| Requirement | Code | Test evidence | Status |
-|---|---|---|---|
-| Frame encode/decode roundtrip | `ports/uart/loxboot_uart.c` | `test_loxboot_uart_frame.c` | ✅ |
-| HELLO gating for WRITE/COMMIT/REBOOT | `ports/uart/loxboot_uart.c` | `test_loxboot_uart_receive.c` | ✅ |
-| COMMIT size validation | `ports/uart/loxboot_uart.c` | `test_loxboot_uart_receive.c` | ✅ |
-| Overflow-safe WRITE bounds check | `ports/uart/loxboot_uart.c` | `test_loxboot_uart_receive.c` | ✅ |
-| NULL pointer checks | `ports/uart/loxboot_uart.c` | `test_loxboot_uart_frame.c` | ✅ |
-
----
-
-## Firmware Verification
-
-| Requirement | Code | Test evidence | Status |
-|---|---|---|---|
-| CRC32 known vector (`123456789` -> `0xCBF43926`) | `src/loxboot_crc32.c` | `test_loxboot_crc32.c` | ✅ |
-| Incremental CRC32 API | `src/loxboot_crc32.c` | `test_loxboot_boot_sequence.c`, `test_loxboot_uart_receive.c` | ✅ |
-| Firmware CRC via `flash.read()` | `src/loxboot_core.c` | `test_loxboot_boot_sequence.c` | ✅ |
-
----
-
-## Slot Management
-
-| Requirement | Code | Test evidence | Status |
-|---|---|---|---|
-| Commit slot | `src/loxboot_core.c` | `test_loxboot_commit_slot.c` | ✅ |
-| Invalidate slot | `src/loxboot_core.c` | `test_loxboot_invalidate_slot.c` | ✅ |
-| Request slot | `src/loxboot_core.c` | `test_loxboot_request_slot.c` | ✅ |
-| `loxboot_format_state()` | `src/loxboot_core.c` | `test_loxboot_init.c` | ✅ |
-
----
-
-## Build and Verification
-
-| Requirement | Evidence | Status |
-|---|---|---|
-| MSVC build | Local `cmake --build build` after `cmake -S . -B build -DLOXBOOT_BUILD_UART_PORT=ON` | ✅ |
-| Local CTest | Local `ctest --test-dir build -C Debug --output-on-failure` after `cmake -S . -B build -DLOXBOOT_BUILD_UART_PORT=ON` | ✅ (`15/15`) |
-| GitHub Actions | Not run locally | ⛔ |
-| Hardware validation | Not verified locally | ⛔ |
-
----
-
-## Known Gaps
-
-| Requirement | Status | Notes |
-|---|---|---|
-| ARM Cortex-M jump mechanism | Not verified locally | No hardware run in this task |
-| STM32 flash operations | Not verified locally | Stub build only |
-| ESP32-S3 OTA boot cycle | Not verified locally | Stub tests passed; hardware run not done |
-| Power-loss recovery | Not verified locally | No lab run in this task |
-| Firmware signing | Missing | Still CRC32 only |
-
----
-
-## Critical Fixes Applied in This Session
-
-| Issue | Fix | Evidence |
-|---|---|---|
-| Checked range end arithmetic | Added overflow-safe helpers in `src/loxboot_core.c` | Build + local tests pass |
-| Invalid `active_slot` in persisted state | Rejected in `src/loxboot_state.c` validation | `test_loxboot_state_edges.c` |
-| Non-ARM default handoff | Fails safely without explicit handoff | `test_loxboot_boot_sequence.c` |
-| Large stack firmware buffer | Reduced to `LOXBOOT_FW_VERIFY_CHUNK_SIZE` | Build + local tests pass |
-| UART WRITE overflow | Rejected before wraparound | `test_loxboot_uart_receive.c` |
-
----
-
-## Verdict
-
-Local verification in this workspace:
-- `15/15` CTest binaries passed.
-- `GitHub Actions: NOT RUN / unavailable locally`.
-- Hardware validation remains incomplete.
-
-The repository remains `NOT PRODUCTION READY`.
+| Area | Requirement | Evidence file / command | Last verified commit | Status | Notes |
+|---|---|---|---|---|---|
+| Host MSVC/GCC/Clang local tests | Local host test coverage across the host compilers used by this repo | `cmake -S . -B build -DLOXBOOT_BUILD_TESTS=ON -DLOXBOOT_BUILD_UART_PORT=ON`; `cmake --build build`; `ctest --test-dir build -C Debug --output-on-failure`; `cmake --build build --config Release`; `ctest --test-dir build -C Release --output-on-failure` | `ce7a65ea010b6b5653c9133062487ea090cdf8e9` | PREPARED | MSVC path was verified in this task; GCC and Clang were not run in this task. |
+| CTest full profile | Full local CTest run with UART port enabled | `ctest --test-dir build -C Debug --output-on-failure` and `ctest --test-dir build -C Release --output-on-failure` | `ce7a65ea010b6b5653c9133062487ea090cdf8e9` | VERIFIED | 15/15 tests passed in Debug and 15/15 tests passed in Release. |
+| Python E2E simulator | UART simulator test wired into CTest | `loxboot_e2e` via `ctest --test-dir build -C Debug --output-on-failure` and `ctest --test-dir build -C Release --output-on-failure` | `ce7a65ea010b6b5653c9133062487ea090cdf8e9` | VERIFIED | `loxboot_e2e` passed in both local profiles. |
+| CI workflow | Workflow syntax and trigger coverage for CI | `.github/workflows/ci.yml` | `ce7a65ea010b6b5653c9133062487ea090cdf8e9` | PREPARED | `workflow_dispatch` added; workflow was not run in this task. |
+| Release workflow | Tag-triggered packaging and publish workflow | `.github/workflows/release.yml` | `ce7a65ea010b6b5653c9133062487ea090cdf8e9` | PREPARED | Workflow present; GitHub Release was not run or verified in this task. |
+| ESP32-S3 OTA hardware E2E | Full OTA hardware update path | `docs/HARDWARE_EVIDENCE.md`; `tools/test_e2e_ota.py` | `ce7a65ea010b6b5653c9133062487ea090cdf8e9` | NOT VERIFIED | Harness exists; no hardware log was produced in this task. |
+| ESP32-S3 corrupt image rejection | Reject or invalidate corrupt OTA image on hardware | `docs/HARDWARE_EVIDENCE.md`; `tools/test_e2e_ota.py` | `ce7a65ea010b6b5653c9133062487ea090cdf8e9` | NOT VERIFIED | Hardware evidence missing. |
+| ESP32-S3 disconnect/power-loss tests | Disconnect and power-loss scenarios on hardware | `docs/HARDWARE_EVIDENCE.md`; `docs/POWERLOSS_TEST_PLAN.md` | `ce7a65ea010b6b5653c9133062487ea090cdf8e9` | NOT VERIFIED | Plan exists, but no hardware log was added in this task. |
+| STM32 adapter hardware | Real STM32 flash and handoff validation | `docs/HARDWARE_EVIDENCE.md`; `adapters/esp32/` and `adapters/stm32/` | `ce7a65ea010b6b5653c9133062487ea090cdf8e9` | NOT VERIFIED | Adapter code is present; hardware evidence is missing. |
+| ARM Cortex-M jump | Jump-to-app on a real ARM target | `docs/HARDWARE_EVIDENCE.md`; `src/loxboot_core.c` | `ce7a65ea010b6b5653c9133062487ea090cdf8e9` | NOT VERIFIED | Code exists; hardware evidence is missing. |
+| UART retry/resume | Production-grade retry/resume for UART update sessions | `docs/PROTOCOL_UART.md` | `ce7a65ea010b6b5653c9133062487ea090cdf8e9` | MISSING | The protocol does not implement retry/resume support today. |
+| Firmware signing | Firmware authenticity layer | `docs/SECURITY_LAYER_PLAN.md` | `ce7a65ea010b6b5653c9133062487ea090cdf8e9` | MISSING | CRC32 only detects accidental corruption; signing/authentication is not implemented. |
+| Power-loss flash fault injection | Deterministic fault injection for erase/write/state-write failures | `docs/POWERLOSS_TEST_PLAN.md` | `ce7a65ea010b6b5653c9133062487ea090cdf8e9` | PREPARED | Plan exists; implementation is not present in this task. |

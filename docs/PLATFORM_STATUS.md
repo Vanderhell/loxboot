@@ -4,113 +4,75 @@
 
 | Platform | Core | UART | Adapter | Handoff | Status |
 |---|---|---|---|---|---|
-| Host (tests) | ✅ | ✅ | ✅ (stubs) | ✅ (stub-tested) | VERIFIED LOCALLY |
-| ARM Cortex-M | ✅ | ✅ | ⚠️ (no HAL) | ⚠️ (not HW tested) | NOT HARDWARE VERIFIED |
-| STM32 | ✅ | ✅ | ⚠️ (stub) | ⚠️ (not HW tested) | NOT HARDWARE VERIFIED |
-| ESP32-S3 | ✅ | ✅ | ✅ (IDF) | ⚠️ (UART only) | NOT VERIFIED LOCALLY |
-| Xtensa/ESP8266 | ✅ | ✅ | ⛔ | ⛔ | NO ADAPTER |
-| RISC-V | ✅ | ✅ | ⛔ | ⛔ | NO ADAPTER |
-
-**Legend:** ✅ verified locally, ⚠️ implemented but not hardware-validated, ⛔ not implemented.
-
----
+| Host tests | verified | verified | stubs | stub-tested | VERIFIED LOCALLY |
+| ARM Cortex-M | verified | verified | not hardware-verified | not hardware-verified | CODE PRESENT, HARDWARE EVIDENCE MISSING |
+| STM32 | verified | verified | present | not hardware-verified | ADAPTER PRESENT, HARDWARE EVIDENCE MISSING |
+| ESP32-S3 | verified | verified | present | not hardware-verified | HARNESSES PRESENT, HARDWARE EVIDENCE MISSING |
+| Xtensa/ESP8266 | verified | verified | no adapter | no handoff | NO ADAPTER |
+| RISC-V | verified | verified | no adapter | no handoff | NO ADAPTER |
 
 ## Host Verification
 
-**Status:** Verified locally in this workspace
+Status:
+- Verified locally in this workspace
+- 15/15 CTest binaries passed with `-DLOXBOOT_BUILD_UART_PORT=ON`
 
-**Tests:** 15/15 CTest binaries, 0 failures
-
-**Full local test profile:** `cmake -S . -B build -DLOXBOOT_BUILD_UART_PORT=ON`
-
-**Build:** MSBuild Debug configuration passed in this workspace
-
-**Not verified locally:**
+Not verified in this task:
 - GitHub Actions
-- GCC/Clang runs
-- ASAN/UBSAN
-- ARM cross-compile execution
-
----
+- GitHub Release
+- GCC/Clang local runs
+- ARM hardware
+- STM32 hardware
+- ESP32-S3 hardware
 
 ## ARM Cortex-M
 
-**Status:** Code present. Hardware jump behavior is not verified locally.
+Status:
+- Code present
+- Hardware jump behavior not verified in this task
 
-**What is covered locally:**
-- Boot sequence logic
-- UART protocol
-- State management
-
-**Not verified locally:**
-- `loxboot_jump_to_app()` on a real ARM board
-- STM32 HAL flash operations on real hardware
-- Power-loss scenarios
-
----
+Not verified:
+- `loxboot_jump_to_app()` on a real board
+- real flash erase/write behavior
+- power-loss scenarios
 
 ## STM32
 
-**Status:** Adapter code present. Stub compilation passed locally; hardware validation did not run in this task.
+Status:
+- Adapter code present
+- Stub-friendly build path exists
+- Hardware evidence missing
 
-**Adapter behavior in code:**
-- Flash read: memory-mapped direct pointer
-- Flash write: 8-byte chunks via `HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD)`
-- Flash erase: rounded up to `FLASH_PAGE_SIZE`
-
-**Not verified locally:**
-- Real STM32 HAL
-- Flash page size by variant
-- Dual-bank behavior
-- Power-loss recovery
-
----
+Not verified:
+- real STM32 HAL integration
+- flash page size by variant
+- dual-bank behavior
+- power-loss recovery
 
 ## ESP32-S3
 
-**Status:** Local stub tests passed. Hardware UART/OTA behavior was not verified locally in this task.
+Status:
+- Adapter code present
+- OTA harness present
+- Hardware evidence missing
 
-**Stub coverage in this workspace:**
-- `loxboot_esp32_handoff()`
-- `loxboot_esp32_confirm_running_app()`
-- `loxboot_esp32_sync_state_from_ota()`
-- `test_loxboot_esp32_platform`
-
-**Not verified locally:**
-- Full OTA boot cycle
-- App rollback behavior on a real device
-- Power-loss during update
+Not verified:
+- full OTA boot cycle
+- rollback behavior on a real device
+- power-loss during update
 - `esp_ota_mark_app_valid_cancel_rollback()` on real hardware
 
----
-
-## Build Status
-
-| Target | Status | Evidence |
-|---|---|---|
-| Host MSVC | ✅ | 15/15 CTest binaries, 0 failures |
-| Host GCC | ⚠️ | Flags configured, not run locally |
-| Host Clang | ⚠️ | Flags configured, not run locally |
-| ARM cross | ⚠️ | CMake toolchain configured, not executed |
-| ESP32-S3 IDF | ⚠️ | Not verified locally in this task |
-| STM32 stub | ✅ | Stub build passed locally |
-| ESP32 stub | ✅ | Local stub tests passed |
-
-**GitHub Actions: NOT RUN / unavailable locally**
-
----
-
-## Verified vs. Not Verified
+## Verification Matrix
 
 | Claim | Local evidence | Status |
 |---|---|---|
-| Core boot sequence logic | 15/15 CTest binaries | ✅ |
-| UART protocol logic | 15/15 CTest binaries | ✅ |
-| CRC16/CRC32 code paths | Known-vector tests in repo | ✅ |
-| ESP32 UART protocol | Not verified locally | ⚠️ |
-| ESP32 OTA handoff logic | Stub tests only | ⚠️ |
-| Full ESP32 OTA boot cycle | Not tested locally | ⛔ |
-| STM32 flash operations | Not tested locally | ⛔ |
-| ARM jump mechanism | Not tested locally | ⛔ |
-| GitHub Actions | NOT RUN / unavailable locally | ⛔ |
-| ASAN/UBSAN | Not run locally | ⛔ |
+| Core boot sequence logic | 15/15 CTest binaries | VERIFIED |
+| UART protocol logic | 15/15 CTest binaries | VERIFIED |
+| CRC16/CRC32 code paths | Known-vector tests in repo | VERIFIED |
+| ESP32 UART protocol | No hardware log in this task | NOT VERIFIED |
+| ESP32 OTA handoff logic | Harness present, no hardware log | NOT VERIFIED |
+| Full ESP32 OTA boot cycle | No hardware log in this task | NOT VERIFIED |
+| STM32 flash operations | No hardware log in this task | NOT VERIFIED |
+| ARM jump mechanism | No hardware log in this task | NOT VERIFIED |
+| GitHub Actions | Not run in this task | NOT VERIFIED |
+| GitHub Release | Not verified in this task | NOT VERIFIED |
