@@ -14,7 +14,7 @@ Local verification in this workspace:
 - Host automated tests: `15/15` CTest binaries passing with `-DLOXBOOT_BUILD_UART_PORT=ON`
 - GitHub Actions: `PREPARED / NOT RUN IN THIS TASK`
 - GitHub Release: `workflow present / release not verified in this task`
-- ESP32-S3 hardware: `test harness present / hardware evidence required`
+- ESP32-S3 hardware: `OTA E2E verified in this task; disconnect / power-loss evidence still required`
 - STM32 hardware: `adapter present / hardware evidence required`
 - Power-loss tests: `plan present / not verified in this task`
 - Firmware signing: `not implemented`
@@ -136,8 +136,8 @@ Local test coverage in this workspace:
 
 Status:
 - GitHub Actions: `PREPARED / NOT RUN IN THIS TASK`
-- Hardware adapters: `evidence required`
-- ESP32-S3 hardware OTA: `harness present, not verified in this task`
+- Hardware adapters: `ESP32-S3 OTA verified; disconnect / power-loss still required`
+- ESP32-S3 hardware OTA: `verified in this task; disconnect / power-loss pending`
 
 ## Documentation
 

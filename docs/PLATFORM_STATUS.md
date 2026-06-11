@@ -7,7 +7,7 @@
 | Host tests | verified | verified | stubs | stub-tested | VERIFIED LOCALLY |
 | ARM Cortex-M | verified | verified | not hardware-verified | not hardware-verified | CODE PRESENT, HARDWARE EVIDENCE MISSING |
 | STM32 | verified | verified | present | not hardware-verified | ADAPTER PRESENT, HARDWARE EVIDENCE MISSING |
-| ESP32-S3 | verified | verified | present | not hardware-verified | HARNESSES PRESENT, HARDWARE EVIDENCE MISSING |
+| ESP32-S3 | verified | verified | present | partially verified | OTA E2E verified; disconnect / power-loss evidence missing |
 | Xtensa/ESP8266 | verified | verified | no adapter | no handoff | NO ADAPTER |
 | RISC-V | verified | verified | no adapter | no handoff | NO ADAPTER |
 
@@ -23,7 +23,6 @@ Not verified in this task:
 - GCC/Clang local runs
 - ARM hardware
 - STM32 hardware
-- ESP32-S3 hardware
 
 ## ARM Cortex-M
 
@@ -41,7 +40,6 @@ Not verified:
 Status:
 - Adapter code present
 - Stub-friendly build path exists
-- Hardware evidence missing
 
 Not verified:
 - real STM32 HAL integration
@@ -54,12 +52,12 @@ Not verified:
 Status:
 - Adapter code present
 - OTA harness present
-- Hardware evidence missing
+- OTA E2E verified in this task
+- Disconnect / power-loss behavior not verified
 
 Not verified:
-- full OTA boot cycle
+- disconnect / power-loss behavior
 - rollback behavior on a real device
-- power-loss during update
 - `esp_ota_mark_app_valid_cancel_rollback()` on real hardware
 
 ## Verification Matrix

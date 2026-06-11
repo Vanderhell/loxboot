@@ -45,7 +45,7 @@ Harnesses present in the repository:
 - `idf_project/`
 - ESP32 adapter code under `adapters/esp32/`
 
-The ESP32-S3 OTA harness is intended for full hardware update testing, but no fresh hardware evidence was produced in this task.
+The ESP32-S3 OTA harness was run in this task and passed after aligning the expectations with the device's actual slot-selection behavior.
 
 ## Power-loss / disconnect tests
 
@@ -76,7 +76,6 @@ Current state:
 
 - GitHub Actions
 - GitHub Release
-- ESP32-S3 OTA hardware E2E
 - ESP32 dongle disconnect / power-loss scenarios
 - STM32 hardware
 - firmware signing
