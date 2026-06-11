@@ -135,9 +135,13 @@ static loxboot_esp32_platform_ctx_t g_esp32_platform;
 
 void app_main(void)
 {
+#if LOXBOOT_ESP32_AUTO_CONFIRM
     /* Confirm running app if in PENDING_VERIFY state (after OTA update).
      * Called before any other init so rollback triggers on any crash after this point. */
     loxboot_esp32_confirm_running_app();
+#else
+    ESP_LOGW(TAG, "AUTO_CONFIRM disabled - pending OTA images will remain pending for rollback tests");
+#endif
 
     /* USB Serial JTAG init — this is COM19 on host */
     usb_serial_jtag_driver_config_t usb_cfg = {

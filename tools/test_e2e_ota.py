@@ -200,7 +200,7 @@ def test_initial_state(port: serial.Serial, r: Results) -> bytes:
     return payload
 
 
-def test_full_ota_update(port: serial.Serial, r: Results, firmware: bytes) -> None:
+def test_full_ota_update(port: serial.Serial, r: Results, firmware: bytes) -> tuple[int, int]:
     """Upload firmware to the inactive slot, commit, reboot, verify slot switch."""
     r.begin("OTA update: HELLO -> WRITE -> COMMIT -> REBOOT -> boot inactive slot")
 
@@ -245,14 +245,18 @@ def test_full_ota_update(port: serial.Serial, r: Results, firmware: bytes) -> No
         r.check(payload[expected_active] in (1, 2, 4),
                 f"target slot state={SLOT_STATE.get(payload[expected_active], f'0x{payload[expected_active]:02X}')} is PENDING/VALID/ACTIVE")
 
+    return initial_active if initial_active is not None else 0, expected_active
 
-def test_ota1_still_boots_after_reboot(port: serial.Serial, r: Results) -> None:
-    """Verify the same active slot remains active after a second reboot."""
-    r.begin("Persistence: active slot remains stable after second reboot")
+
+def test_second_reboot_behavior(port: serial.Serial, r: Results, initial_active: int, expected_active: int, expect_rollback: bool) -> None:
+    """Verify the second reboot either stays on the new slot or rolls back."""
+    if expect_rollback:
+        r.begin("Rollback: pending image reboots back to previous slot")
+    else:
+        r.begin("Persistence: active slot remains stable after second reboot")
 
     # Trigger a reboot by sending HELLO + REBOOT without updating
     payload = wait_hello(port)
-    initial_active = payload[2] if len(payload) == 4 else None
     cmd, _ = send_recv(port, encode_frame(CMD_REBOOT), timeout=10.0)
     r.check(cmd == RSP_OK, "REBOOT sent")
 
@@ -263,7 +267,9 @@ def test_ota1_still_boots_after_reboot(port: serial.Serial, r: Results) -> None:
     if len(payload) == 4:
         active = payload[2]
         print(f"  INFO  After 2nd reboot: active={active}")
-        r.check(active == initial_active, f"active={active} == initial active slot {initial_active}")
+        expected = initial_active if expect_rollback else expected_active
+        label = "previous slot" if expect_rollback else "initial active slot"
+        r.check(active == expected, f"active={active} == {label} {expected}")
 
 
 def test_corrupt_update_rollback(port: serial.Serial, r: Results) -> None:
@@ -314,6 +320,8 @@ def main():
     parser.add_argument('--baud',     type=int, default=115200)
     parser.add_argument('--firmware', default='idf_project/build/loxboot_esp32.bin',
                         help="Firmware .bin to upload via UART")
+    parser.add_argument('--expect-rollback', action='store_true',
+                        help="Expect the second reboot to roll back to the previously active slot")
     args = parser.parse_args()
 
     if not os.path.exists(args.firmware):
@@ -331,8 +339,8 @@ def main():
     with serial.Serial(args.port, args.baud, timeout=2) as port:
         try:
             test_initial_state(port, r)
-            test_full_ota_update(port, r, firmware)
-            test_ota1_still_boots_after_reboot(port, r)
+            initial_active, expected_active = test_full_ota_update(port, r, firmware)
+            test_second_reboot_behavior(port, r, initial_active, expected_active, args.expect_rollback)
             test_corrupt_update_rollback(port, r)
         except Exception as e:
             r.check(False, f"EXCEPTION: {e}")
