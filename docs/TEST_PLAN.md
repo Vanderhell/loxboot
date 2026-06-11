@@ -47,6 +47,10 @@ Harnesses present in the repository:
 
 The ESP32-S3 OTA harness was run in this task and passed after aligning the expectations with the device's actual slot-selection behavior.
 
+The hardware coverage was exercised in two modes:
+- auto-confirm enabled: verified OTA A/B handoff and corrupt-image rejection
+- auto-confirm disabled (`LOXBOOT_ESP32_AUTO_CONFIRM=0`): verified pending-image rollback on the second reboot
+
 ## Power-loss / disconnect tests
 
 Current state:
@@ -64,6 +68,7 @@ The repository still needs evidence for:
 - disconnect after COMMIT but before REBOOT
 - disconnect during reboot
 - reconnect and STATUS query
+- disconnect / power-loss fault injection
 
 ## Security/signing tests
 

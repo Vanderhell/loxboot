@@ -7,7 +7,7 @@
 | Host tests | verified | verified | stubs | stub-tested | VERIFIED LOCALLY |
 | ARM Cortex-M | verified | verified | not hardware-verified | not hardware-verified | CODE PRESENT, HARDWARE EVIDENCE MISSING |
 | STM32 | verified | verified | present | not hardware-verified | ADAPTER PRESENT, HARDWARE EVIDENCE MISSING |
-| ESP32-S3 | verified | verified | present | partially verified | OTA E2E verified; disconnect / power-loss evidence missing |
+| ESP32-S3 | verified | verified | present | partially verified | OTA A/B handoff and pending-image rollback verified; disconnect / power-loss evidence missing |
 | Xtensa/ESP8266 | verified | verified | no adapter | no handoff | NO ADAPTER |
 | RISC-V | verified | verified | no adapter | no handoff | NO ADAPTER |
 
@@ -52,12 +52,12 @@ Not verified:
 Status:
 - Adapter code present
 - OTA harness present
-- OTA E2E verified in this task
+- OTA A/B handoff verified in this task
+- Pending-image rollback verified in this task with auto-confirm disabled
 - Disconnect / power-loss behavior not verified
 
 Not verified:
 - disconnect / power-loss behavior
-- rollback behavior on a real device
 - `esp_ota_mark_app_valid_cancel_rollback()` on real hardware
 
 ## Verification Matrix
@@ -67,9 +67,9 @@ Not verified:
 | Core boot sequence logic | 15/15 CTest binaries | VERIFIED |
 | UART protocol logic | 15/15 CTest binaries | VERIFIED |
 | CRC16/CRC32 code paths | Known-vector tests in repo | VERIFIED |
-| ESP32 UART protocol | No hardware log in this task | NOT VERIFIED |
-| ESP32 OTA handoff logic | Harness present, no hardware log | NOT VERIFIED |
-| Full ESP32 OTA boot cycle | No hardware log in this task | NOT VERIFIED |
+| ESP32 UART protocol | COM19 hardware log in this task | VERIFIED |
+| ESP32 OTA handoff logic | COM19 hardware log in this task | VERIFIED |
+| Full ESP32 OTA boot cycle | COM19 hardware log in this task | VERIFIED |
 | STM32 flash operations | No hardware log in this task | NOT VERIFIED |
 | ARM jump mechanism | No hardware log in this task | NOT VERIFIED |
 | GitHub Actions | Not run in this task | NOT VERIFIED |

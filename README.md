@@ -14,7 +14,7 @@ Local verification in this workspace:
 - Host automated tests: `15/15` CTest binaries passing with `-DLOXBOOT_BUILD_UART_PORT=ON`
 - GitHub Actions: `PREPARED / NOT RUN IN THIS TASK`
 - GitHub Release: `workflow present / release not verified in this task`
-- ESP32-S3 hardware: `OTA E2E verified in this task; disconnect / power-loss evidence still required`
+- ESP32-S3 hardware: `OTA A/B handoff and pending-image rollback verified in this task; disconnect / power-loss evidence still required`
 - STM32 hardware: `adapter present / hardware evidence required`
 - Power-loss tests: `plan present / not verified in this task`
 - Firmware signing: `not implemented`
@@ -23,7 +23,7 @@ Local verification in this workspace:
 
 **NOT PRODUCTION READY**
 
-The host-core portion of the repository is verified locally, but platform hardening remains incomplete. The current blockers are hardware validation, power-loss evidence, and firmware authentication.
+The host-core portion of the repository is verified locally, and the ESP32-S3 OTA A/B plus rollback path is verified on hardware, but platform hardening remains incomplete. The remaining blockers are hardware validation on other targets, power-loss evidence, and firmware authentication.
 
 Platform adapters still require evidence for:
 - Flash erase granularity handling on target hardware
@@ -43,7 +43,7 @@ loxboot is a C99, zero-heap bootloader core that provides:
 - UART transport for in-field firmware updates
 - STM32 and ESP32 adapter layers
 - Python-based E2E simulator coverage in CTest
-- ESP32-S3 OTA hardware harness for later evidence collection
+- ESP32-S3 OTA hardware harness for later evidence collection and rollback testing
 
 ## Architecture
 
@@ -136,8 +136,8 @@ Local test coverage in this workspace:
 
 Status:
 - GitHub Actions: `PREPARED / NOT RUN IN THIS TASK`
-- Hardware adapters: `ESP32-S3 OTA verified; disconnect / power-loss still required`
-- ESP32-S3 hardware OTA: `verified in this task; disconnect / power-loss pending`
+- Hardware adapters: `ESP32-S3 OTA A/B handoff and rollback verified; disconnect / power-loss still required`
+- ESP32-S3 hardware OTA: `A/B handoff and rollback verified in this task; disconnect / power-loss pending`
 
 ## Documentation
 

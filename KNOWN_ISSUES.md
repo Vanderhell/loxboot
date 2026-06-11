@@ -6,7 +6,7 @@ This file only lists unresolved items. Do not remove an item unless the fix is i
 
 - GitHub Actions was not run in this task
 - GitHub Release was not verified in this task
-- ESP32-S3 OTA E2E is verified, but disconnect / power-loss hardware evidence is still missing
+- ESP32-S3 OTA A/B handoff and rollback are verified, but disconnect / power-loss hardware evidence is still missing
 - STM32 hardware verification is missing
 - power-loss during erase/write/state-write is not fully verified
 - UART retry/resume support is missing

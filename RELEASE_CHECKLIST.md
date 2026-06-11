@@ -27,6 +27,7 @@ This checklist is strict. Do not mark hardware, CI, or release items as complete
 ## Hardware evidence
 
 - [x] ESP32-S3 OTA E2E log added to `docs/HARDWARE_EVIDENCE.md`
+- [x] ESP32-S3 pending-image rollback log added to `docs/HARDWARE_EVIDENCE.md`
 - [x] ESP32-S3 corrupt image rejection log added
 - [ ] STM32 adapter hardware log added
 - [ ] ARM Cortex-M jump log added
@@ -55,7 +56,7 @@ This checklist is strict. Do not mark hardware, CI, or release items as complete
 
 - [ ] GitHub Actions remains unverified in this task
 - [ ] GitHub Release remains unverified in this task
-- [x] ESP32-S3 OTA E2E evidence is present
+- [x] ESP32-S3 OTA A/B handoff and rollback evidence is present
 - [ ] STM32 hardware evidence is present
 - [ ] Power-loss/disconnect evidence is present
 - [ ] Firmware signing status is resolved for the intended deployment model
