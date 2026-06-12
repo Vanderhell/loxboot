@@ -2,6 +2,12 @@
 
 All notable changes to loxboot are documented in this file.
 
+## [v0.8.1] - 2026-06-12
+
+### Documentation
+- Removed roadmap text and external-project references from the repository docs.
+- Updated spec and planning docs to present-tense status text.
+
 ## [v0.8.0] - 2026-06-12
 
 ### Documentation

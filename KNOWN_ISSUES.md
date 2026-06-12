@@ -96,7 +96,7 @@ Status: documented, but still incomplete for some boards
 
 Status: current implementation uses flash reads in chunks; platform-specific tuning may still be needed
 
-## Future improvements
+## Open items
 
 ### 8. Signed firmware updates
 

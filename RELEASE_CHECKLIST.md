@@ -50,7 +50,7 @@ This checklist is strict. Do not mark hardware, CI, or release items as complete
 - [x] Security architecture plan committed
 - [x] CRC32 limitations documented
 - [ ] Firmware signing implementation or explicit non-goal recorded
-- [ ] No hard dependency on `microcrypt` or `microdh` in core
+- [ ] No hard dependency on external security libraries in core
 
 ## Production blockers
 

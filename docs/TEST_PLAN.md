@@ -33,10 +33,10 @@ The repository has CI workflows for:
 - `push` and `pull_request` builds in `.github/workflows/ci.yml`
 - tag-triggered release packaging in `.github/workflows/release.yml`
 
-Status in this task:
-- CI workflow syntax and intent: prepared locally
-- CI execution: not run in this task
-- Release execution: not run in this task
+Status:
+- CI workflow syntax and trigger coverage are present in the repository
+- CI execution was not run in this task
+- Release execution was not run in this task
 
 ## ESP32-S3 hardware tests
 
@@ -55,9 +55,9 @@ The hardware coverage was exercised in two modes:
 ## Power-loss / disconnect tests
 
 Current state:
-- Planned and helper implemented
-- Not verified in this task
-- No hardware log committed in this task
+- Helper implemented
+- Hardware verification is not present in this repository
+- No hardware log is committed here
 
 The repository still needs evidence for:
 - disconnect before HELLO
