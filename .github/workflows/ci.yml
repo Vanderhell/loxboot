@@ -37,6 +37,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Repo hygiene guard
+        run: python tools/check_repo_clean.py
+
       - name: Configure (Ubuntu GCC)
         if: matrix.os == 'ubuntu-latest' && matrix.compiler == 'gcc'
         run: |
@@ -45,6 +48,7 @@ jobs:
             -DCMAKE_C_FLAGS="-Wall -Wextra -Wpedantic -Werror" \
             -DLOXBOOT_BUILD_TESTS=ON \
             -DLOXBOOT_BUILD_UART_PORT=ON \
+            -DLOXBOOT_BUILD_EXAMPLES=ON \
             -DCMAKE_BUILD_TYPE=Release
 
       - name: Configure (Ubuntu Clang)
@@ -55,6 +59,7 @@ jobs:
             -DCMAKE_C_FLAGS="-Wall -Wextra -Wpedantic -Werror" \
             -DLOXBOOT_BUILD_TESTS=ON \
             -DLOXBOOT_BUILD_UART_PORT=ON \
+            -DLOXBOOT_BUILD_EXAMPLES=ON \
             -DCMAKE_BUILD_TYPE=Release
 
       - name: Configure (Windows MSVC)
@@ -63,7 +68,8 @@ jobs:
           cmake -B build `
             -DCMAKE_C_FLAGS="/W4 /WX" `
             -DLOXBOOT_BUILD_TESTS=ON `
-            -DLOXBOOT_BUILD_UART_PORT=ON
+            -DLOXBOOT_BUILD_UART_PORT=ON `
+            -DLOXBOOT_BUILD_EXAMPLES=ON
 
       - name: Configure (Windows ClangCL)
         if: matrix.os == 'windows-latest' && matrix.compiler == 'clang-cl'
@@ -72,7 +78,8 @@ jobs:
             -T ClangCL `
             -DCMAKE_C_FLAGS="-Wall -Wextra -Werror" `
             -DLOXBOOT_BUILD_TESTS=ON `
-            -DLOXBOOT_BUILD_UART_PORT=ON
+            -DLOXBOOT_BUILD_UART_PORT=ON `
+            -DLOXBOOT_BUILD_EXAMPLES=ON
 
       - name: Install ARM cross-compiler
         if: matrix.compiler == 'gcc-arm'

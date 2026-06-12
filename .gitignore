@@ -1,6 +1,7 @@
 build/
 build-release/
 build_*/
+cmake-build-*/
 .vs/
 CMakeSettings.json
 CMakeUserPresets.json
@@ -16,6 +17,7 @@ CMakeUserPresets.json
 
 # ESP-IDF generated files
 idf_project/build/
+idf_project/build_*/
 idf_project/.cache/
 idf_project/sdkconfig
 idf_project/sdkconfig.old
@@ -25,6 +27,13 @@ idf_project/managed_components/
 # Python
 __pycache__/
 *.pyc
+
+# Build outputs
+*.elf
+*.bin
+*.map
+*.hex
+*.uf2
 
 # Zip archives (not source artifacts)
 *.zip

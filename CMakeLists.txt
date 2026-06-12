@@ -13,6 +13,7 @@ set(CMAKE_C_STANDARD_REQUIRED YES)
 
 option(LOXBOOT_BUILD_TESTS       "Build and register CTest tests"          ON)
 option(LOXBOOT_BUILD_UART_PORT   "Include ports/uart/ in build"            OFF)
+option(LOXBOOT_BUILD_EXAMPLES    "Build example programs"                  OFF)
 option(LOXBOOT_BUILD_STM32_ADAPTER "Include adapters/stm32/ in build"      OFF)
 option(LOXBOOT_BUILD_ESP32_ADAPTER "Include adapters/esp32/ in build"      OFF)
 
@@ -123,6 +124,10 @@ else()
         LOXBOOT_UART_LISTEN_MS=${LOXBOOT_UART_LISTEN_MS}
         LOXBOOT_UART_MAX_FRAME_PAYLOAD=${LOXBOOT_UART_MAX_FRAME_PAYLOAD}
     )
+endif()
+
+if(LOXBOOT_BUILD_EXAMPLES)
+    add_subdirectory(examples)
 endif()
 
 # ---------------------------------------------------------------------------

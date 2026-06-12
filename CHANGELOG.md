@@ -2,6 +2,22 @@
 
 All notable changes to loxboot are documented in this file.
 
+## [v0.8.0] - 2026-06-12
+
+### Documentation
+- README verification matrix updated to match the current host and COM19 results.
+- Repo hygiene guard added at `tools/check_repo_clean.py`.
+
+### Build
+- `LOXBOOT_BUILD_EXAMPLES` added to the root CMake build.
+- `examples/generic_custom_adapter/` added to the CMake example build.
+
+### CI
+- CI now runs the repo hygiene guard and enables example builds.
+
+### Release Metadata
+- `include/loxboot/loxboot_version.h` bumped to `0.8.0`.
+
 ## [v0.7.0] - 2026-06-04
 
 ### New Features

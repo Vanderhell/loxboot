@@ -40,6 +40,7 @@ def main() -> int:
             "-B", str(build_dir),
             "-DLOXBOOT_BUILD_TESTS=ON",
             "-DLOXBOOT_BUILD_UART_PORT=ON",
+            "-DLOXBOOT_BUILD_EXAMPLES=ON",
         ])
         run(["cmake", "--build", str(build_dir)])
         run(["ctest", "--test-dir", str(build_dir), "-C", "Debug", "--output-on-failure"])
