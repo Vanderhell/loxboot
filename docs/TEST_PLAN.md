@@ -50,11 +50,12 @@ The ESP32-S3 OTA harness was run in this task and passed after aligning the expe
 The hardware coverage was exercised in two modes:
 - auto-confirm enabled: verified OTA A/B handoff and corrupt-image rejection
 - auto-confirm disabled (`LOXBOOT_ESP32_AUTO_CONFIRM=0`): verified pending-image rollback on the second reboot
+- manual power-loss helper: `tools/test_e2e_ota_powerloss.py`
 
 ## Power-loss / disconnect tests
 
 Current state:
-- Planned
+- Planned and helper implemented
 - Not verified in this task
 - No hardware log committed in this task
 

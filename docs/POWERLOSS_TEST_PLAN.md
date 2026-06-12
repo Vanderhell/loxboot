@@ -40,6 +40,7 @@ Validate that the update path fails safely under flash interruption, disconnect,
 
 ## Current status
 
-- Host-side fault injection: not implemented in this task
+- Host-side fault injection: implemented via `tools/loxboot_sim.c` scenarios and `tools/test_e2e.py`
 - Hardware disconnect / power-loss testing: not verified in this task
 - Evidence log: missing
+- Manual ESP32 helper: `tools/test_e2e_ota_powerloss.py`

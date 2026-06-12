@@ -16,7 +16,7 @@ Local verification in this workspace:
 - GitHub Release: `workflow present / release not verified in this task`
 - ESP32-S3 hardware: `OTA A/B handoff and pending-image rollback verified in this task; disconnect / power-loss evidence still required`
 - STM32 hardware: `adapter present / hardware evidence required`
-- Power-loss tests: `plan present / not verified in this task`
+- Power-loss tests: `helper implemented / hardware evidence still required`
 - Firmware signing: `not implemented`
 
 ## Status
@@ -136,8 +136,8 @@ Local test coverage in this workspace:
 
 Status:
 - GitHub Actions: `PREPARED / NOT RUN IN THIS TASK`
-- Hardware adapters: `ESP32-S3 OTA A/B handoff and rollback verified; disconnect / power-loss still required`
-- ESP32-S3 hardware OTA: `A/B handoff and rollback verified in this task; disconnect / power-loss pending`
+- Hardware adapters: `ESP32-S3 OTA A/B handoff and rollback verified; disconnect / power-loss helper implemented`
+- ESP32-S3 hardware OTA: `A/B handoff and rollback verified in this task; disconnect / power-loss evidence pending`
 
 ## Documentation
 

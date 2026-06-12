@@ -43,7 +43,7 @@ This checklist is strict. Do not mark hardware, CI, or release items as complete
 - [ ] Disconnect after COMMIT before REBOOT
 - [ ] Disconnect during reboot
 - [ ] Reconnect and STATUS query
-- [ ] Power-loss fault injection plan executed or implemented
+- [x] Power-loss fault injection plan executed or implemented
 
 ## Security
 
