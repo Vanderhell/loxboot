@@ -2,6 +2,11 @@
 
 All notable changes to loxboot are documented in this file.
 
+## [v0.8.2] - 2026-06-12
+
+### Documentation
+- `docs/PORTING.md` rewritten to remove stale roadmap wording and keep only current porting rules and examples.
+
 ## [v0.8.1] - 2026-06-12
 
 ### Documentation
